@@ -1,0 +1,26 @@
+// Sample prices and inventory for the isolated development store only.
+export const demoCatalogue = [
+  ['Haldi Powder', 'हल्दी पाउडर', 'haldi-powder', 9900, 'HALDI', 'ground-spices', 'Golden colour and an earthy flavour for dal, vegetables, and everyday cooking.'],
+  ['Dhaniya Powder', 'धनिया पाउडर', 'dhaniya-powder', 8900, 'DHANIYA', 'ground-spices', 'Gentle citrus notes and a warm aroma for gravies and vegetable dishes.'],
+  ['Lal Mirch Powder', 'लाल मिर्च पाउडर', 'lal-mirch-powder', 11900, 'MIRCH', 'ground-spices', 'A lively touch of heat and rich colour for your favourite Indian recipes.'],
+  ['Jeera', 'जीरा', 'jeera', 12900, 'JEERA', 'whole-spices', 'Whole cumin seeds for fragrant tadkas, jeera rice, and roasted spice mixes.'],
+  ['Kali Mirch', 'काली मिर्च', 'kali-mirch', 17900, 'PEPPER', 'whole-spices', 'Whole black peppercorns with a bold aroma for freshly ground seasoning.'],
+  ['Choti Elaichi', 'छोटी इलायची', 'choti-elaichi', 34900, 'ELAICHI', 'whole-spices', 'Aromatic green cardamom pods for chai, desserts, and festive rice dishes.'],
+  ['Dalchini', 'दालचीनी', 'dalchini', 14900, 'DALCHINI', 'whole-spices', 'Warm cinnamon sticks for slow-cooked gravies, pulao, and spiced drinks.'],
+  ['Laung', 'लौंग', 'laung', 22900, 'LAUNG', 'whole-spices', 'Whole cloves with a warm, intense aroma for rice dishes and spice blends.'],
+  ['Garam Masala', 'गरम मसाला', 'garam-masala', 15900, 'GARAM', 'blended-masalas', 'A warming sample spice blend for finishing curries and vegetable dishes.'],
+  ['Chole Masala', 'छोले मसाला', 'chole-masala', 13900, 'CHOLE', 'blended-masalas', 'A robust sample spice blend for chickpea curries and hearty gravies.'],
+  ['Pav Bhaji Masala', 'पाव भाजी मसाला', 'pav-bhaji-masala', 14900, 'PAVBHAJI', 'blended-masalas', 'A vibrant sample blend for street-style vegetable bhaji served with warm pav.'],
+  ['Chaat Masala', 'चाट मसाला', 'chaat-masala', 10900, 'CHAAT', 'blended-masalas', 'A tangy sample seasoning for fruit, salads, snacks, and fresh chaat.'],
+  ['Rai', 'राई', 'rai', 7900, 'RAI', 'whole-spices', 'Mustard seeds for tempering dals, vegetables, and homemade pickles.'],
+  ['Methi Dana', 'मेथी दाना', 'methi-dana', 6900, 'METHI', 'whole-spices', 'Fenugreek seeds for pickles, tadkas, and savoury spice mixtures.'],
+  ['Saunf', 'सौंफ', 'saunf', 9900, 'SAUNF', 'whole-spices', 'Sweetly aromatic fennel seeds for cooking, baking, and after-meal refreshment.'],
+  ['Ajwain', 'अजवाइन', 'ajwain', 10900, 'AJWAIN', 'whole-spices', 'Fragrant carom seeds for parathas, pakoras, and savoury snacks.'],
+  ['Amchur Powder', 'अमचूर पाउडर', 'amchur-powder', 11900, 'AMCHUR', 'ground-spices', 'Tangy dried mango powder for chutneys, vegetables, and chaat.'],
+  ['Hing', 'हींग', 'hing', 29900, 'HING', 'ground-spices', 'A sample asafoetida seasoning for aromatic dal and vegetable tempering.'],
+  ['Kashmiri Mirch Powder', 'कश्मीरी मिर्च पाउडर', 'kashmiri-mirch-powder', 15900, 'KASHMIRI', 'ground-spices', 'A vibrant sample chilli powder for adding red colour and gentle warmth to gravies.'],
+  ['Sambar Masala', 'सांभर मसाला', 'sambar-masala', 13900, 'SAMBAR', 'blended-masalas', 'A fragrant sample spice blend for lentil and vegetable sambar.'],
+].map(([name, hindiName, slug, pricePaise, sku, category, description]) => ({
+  name, hindiName, slug, pricePaise, sku, category, description,
+  image: `/images/products/${slug}.png`,
+}));

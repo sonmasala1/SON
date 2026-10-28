@@ -1,0 +1,6 @@
+import { Text, LocalizedAttrs } from '@/components/LocalizedText';
+import Link from 'next/link';
+import { recipes } from '@/lib/recipes';
+import Icon from '@/components/Icon';
+export const metadata = { title: 'Recipes | SON MASALA' };
+export default function RecipesPage() { return <main id="main" className="wrap page-content"><p className="eyebrow"><Text>{"THE RECIPE DIARY"}</Text></p><h1><Text>{"Good food. Familiar feelings."}</Text></h1><p className="page-intro"><Text>{"Simple recipes for everyday kitchens. Make them your own."}</Text></p><div className="recipe-grid"><Text>{recipes.map(recipe => <Link className={`recipe-card recipe-${recipe.tone}`} key={recipe.slug} href={`/recipes/${recipe.slug}`}><div className="recipe-art"><LocalizedAttrs><span className="recipe-word" lang="hi"><Text>{recipe.hindi}</Text></span></LocalizedAttrs><Icon name={recipe.icon} size={70} /></div><div className="recipe-copy"><span><Text>{recipe.time}</Text><Text>{" MINUTES · "}</Text><Text>{recipe.tag}</Text></span><h2><Text>{recipe.title}</Text></h2><p><Text>{recipe.description}</Text></p><span className="text-link"><Text>{"Read recipe "}</Text><Icon size={24} /></span></div></Link>)}</Text></div></main>; }

@@ -1,0 +1,15 @@
+{
+  "tool": "Built-in image_gen",
+  "images": [
+    {
+      "file": "garam-masala-legacy-sizes.png",
+      "prompt": "Use case: product-mockup. Horizontal two-panel contact sheet in exact 2:1 aspect ratio. LEFT square panel shows a small SON MASALA GARAM MASALA pouch labelled exactly \"50 g\". RIGHT square panel shows the same packaging in a larger pouch labelled exactly \"200 g\". Match the supplied reference product branding and ivory packaging. Each square has its own ceramic bowl of brown masala powder and cream studio background, with generous margins and no object crossing the center division. Two complete product photos side by side for a website gallery. Clear product name, accurate weights, no additional claims, no watermark. Left 50 g, right 200 g.",
+      "panels": 2
+    },
+    {
+      "file": "chole-masala-legacy-sizes.png",
+      "prompt": "Use case: product-mockup. Horizontal two-panel contact sheet in exact 2:1 aspect ratio. LEFT square panel shows a small SON MASALA CHOLE MASALA pouch labelled exactly \"50 g\". RIGHT square panel shows the same packaging in a larger pouch labelled exactly \"200 g\". Match the supplied reference product branding and ivory packaging. Each square has its own ceramic bowl of brown masala powder and cream studio background, with generous margins and no object crossing the center division. Two complete product photos side by side for a website gallery. Clear product name, accurate weights, no additional claims, no watermark. Left 50 g, right 200 g.",
+      "panels": 2
+    }
+  ]
+}

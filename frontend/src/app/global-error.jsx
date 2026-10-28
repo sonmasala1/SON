@@ -1,0 +1,4 @@
+'use client';
+import { LocaleProvider } from '@/components/LocaleProvider';
+import { Text } from '@/components/LocalizedText';
+export default function GlobalError({ reset }) { return <html lang="en"><body style={{ padding: 'clamp(20px, 5vw, 48px)', fontFamily: 'Inter, "Son Devanagari", sans-serif', fontSize: 18, lineHeight: 1.7, color: '#173e30', background: '#faf7ee' }}><LocaleProvider><h1 style={{ fontSize: 'clamp(34px, 5vw, 56px)', lineHeight: 1.3, overflowWrap: 'anywhere' }}><Text>We couldn’t open the store.</Text></h1><p><Text>Please try loading the page again.</Text></p><button onClick={reset} style={{ minHeight: 52, padding: '12px 24px', font: 'inherit', fontWeight: 600, color: '#fffdf2', background: '#203f31', border: 0, borderRadius: 4 }}><Text>Try again</Text></button></LocaleProvider></body></html>; }

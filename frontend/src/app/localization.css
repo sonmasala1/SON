@@ -1,0 +1,33 @@
+@font-face { font-family: 'Son Devanagari'; src: url('/fonts/NotoSansDevanagari.ttf') format('truetype'); font-weight: 100 900; font-display: swap; }
+.language-toggle { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.language-toggle button { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 44px; min-width: 62px; padding: 0 11px; border: 0; border-radius: 999px; background: transparent; color: #3f164d; font-size: var(--text-body); font-weight: 400; line-height: 1; }
+.language-toggle button::before { content: ''; position: absolute; inset: 5px 0; border: 1px solid #b09bb6; border-radius: inherit; background: #fff; transition: background .15s, border-color .15s; }
+.language-toggle button > svg, .language-toggle button > span { position: relative; }
+.language-toggle button > svg { color: #ff7900; }
+.language-toggle button:hover::before { background: #fcf8ff; border-color: #795285; }
+.language-toggle button[lang='hi'] { font-family: 'Son Devanagari', 'Nirmala UI', sans-serif; }
+.language-toggle button:focus-visible { outline: 2px solid #795285; outline-offset: 2px; }
+.header-actions .header-cart, .header-actions .header-profile, .customer-auth-header-actions .header-cart, .customer-auth-header-actions .header-profile { display: inline-flex; color: #3f164d; min-height: 44px; min-width: 36px; padding: 0; border-radius: 999px; }
+.header-cart:hover, .header-profile:hover { background: #f1eaf4; }
+.header-cart .badge { background: #3f164d; color: #fff; top: 1px; right: -1px; }
+html[lang='hi'] body, html[lang='hi'] input, html[lang='hi'] select, html[lang='hi'] button, html[lang='hi'] textarea { font-family: var(--font-hindi); }
+html[lang='hi'] h1, html[lang='hi'] h2, html[lang='hi'] h3, html[lang='hi'] .customer-auth-intro h1, html[lang='hi'] .eyebrow, html[lang='hi'] .cart-item-name, html[lang='hi'] .review-line strong { font-family: 'Son Devanagari', 'Nirmala UI', sans-serif; line-height: 1.5; letter-spacing: 0; }
+html[lang='hi'] .eyebrow { font-size: var(--text-support); }
+html[lang='hi'] .product-actions .button { padding-inline: 7px; font-size: var(--text-support); }
+html[lang='hi'] .customer-otp-channels label { padding-inline: 8px; }
+html[lang='hi'] .shopping-hero h1 { line-height: 1.6; }
+html[lang='hi'] .brand strong { font-family: Georgia, serif; }
+html[lang='hi'] .brand small { letter-spacing: 0; font-family: 'Son Devanagari', sans-serif; }
+@media (min-width: 951px) and (max-width: 1180px) { .header-inner { gap: 12px; } .main-nav { gap: 12px; } .header-actions { gap: 3px; } }
+@media (max-width: 639px) {
+  .header-inner { flex-wrap: wrap; padding-block: 10px; gap: 5px 12px; }
+  .header-inner > .brand { margin-right: auto; }
+  .header-inner .header-actions { width: 100%; justify-content: flex-end; }
+  .customer-auth-header-inner { flex-wrap: wrap; gap: 4px 12px; }
+  .customer-auth-header-actions { width: 100%; justify-content: flex-end; }
+  .customer-auth-page { min-height: calc(100svh - 125px); }
+  .header-customer-name { display: none; }
+  .header-actions .account-link { display: inline-flex; }
+  html[lang='hi'] .customer-auth-card { padding-inline: 20px; }
+  html[lang='hi'] .customer-auth-field label { font-size: var(--text-support); letter-spacing: 0; }
+}

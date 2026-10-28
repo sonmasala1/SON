@@ -1,0 +1,21 @@
+'use client';
+import StaffTableCell from './StaffTableCell';
+import { Text, LocalizedAttrs } from '@/components/LocalizedText';
+import { useCallback, useEffect, useState } from 'react';
+import { useStaff } from './StaffSession';
+import { moneyPaise } from '@/lib/catalog';
+
+export default function BusinessDashboard({ endpoint }) {
+  const { realm, request, account } = useStaff(); const [data, setData] = useState(null), [error, setError] = useState('');
+  const load = useCallback(async () => { try { setData(await request(endpoint || `${realm}/dashboard`)); setError(''); } catch (error) { setError(error.message); } }, [realm, request, endpoint]);
+  useEffect(() => { void load(); }, [load]);
+  const modules = data?.modules;
+  const cards = modules ? [
+    ...(modules.orders ? [['Total orders', modules.orders.total], ['Paid orders', modules.orders.paid], ['Pending orders', modules.orders.pending]] : []),
+    ...(modules.payments ? [['Collected payments', moneyPaise(modules.payments.collectedPaise)], ['Refunds', moneyPaise(modules.payments.refundedPaise)], ['Net collected', moneyPaise(modules.payments.netCollectedPaise)]] : []),
+    ...(modules.analytics ? [['Products sold', modules.analytics.unitsSold]] : []),
+    ...(modules.inventory ? [['Available inventory units', modules.inventory.availableUnits], ['Low-stock packs', modules.inventory.lowStock]] : []),
+    ...(modules.products ? [['Published products', modules.products.published]] : []), ...(modules.customers ? [['Customer accounts', modules.customers.total]] : []),
+  ] : [];
+  return <><div className="staff-page-heading"><div><p className="eyebrow"><Text>{account.role === 'OWNER' ? 'THE COMPLETE BUSINESS VIEW' : 'YOUR AUTHORIZED BUSINESS VIEW'}</Text></p><h1><Text>{"Business dashboard"}</Text></h1></div><button className="text-link" onClick={load}><Text>{"Refresh data"}</Text></button></div><p className="staff-notice"><Text>{"Actual sales and payment totals exclude all demo transactions."}</Text></p><Text error>{error && <p className="form-error" role="alert"><Text error>{error}</Text></p>}</Text><Text>{!data ? <p role="status"><Text>{"Loading authorized business data…"}</Text></p> : <><div className="staff-metric-grid"><Text>{cards.map(([label, value]) => <article key={label}><span><Text>{label}</Text></span><strong><Text>{value}</Text></strong></article>)}</Text></div><Text>{modules.orders && <p className="staff-demo-note"><Text>{"Separate test activity: "}</Text><Text>{modules.orders.demoOrders}</Text><Text>{" demo orders. These are excluded from sales totals."}</Text></p>}</Text><Text>{modules.analytics && <div className="staff-chart-grid"><section><h2><Text>{"Product-wise units sold"}</Text></h2><Text>{modules.analytics.productSales.length ? <table role="table" className="staff-table"><thead role="rowgroup"><tr role="row"><th scope="col"><Text>{"Product"}</Text></th><th scope="col"><Text>{"Units"}</Text></th><th scope="col"><Text>{"Sales"}</Text></th></tr></thead><tbody role="rowgroup"><Text>{modules.analytics.productSales.map(row => <tr role="row" key={row._id}><StaffTableCell label="Product"><Text>{row.name}</Text></StaffTableCell><StaffTableCell label="Units"><Text>{row.units}</Text></StaffTableCell><StaffTableCell label="Sales"><Text>{moneyPaise(row.revenuePaise)}</Text></StaffTableCell></tr>)}</Text></tbody></table> : <p><Text>{"No actual paid product sales yet."}</Text></p>}</Text></section><section><h2><Text>{"Category-wise sales"}</Text></h2><Text>{modules.analytics.categorySales.length ? <table role="table" className="staff-table"><thead role="rowgroup"><tr role="row"><th scope="col"><Text>{"Category"}</Text></th><th scope="col"><Text>{"Units"}</Text></th><th scope="col"><Text>{"Sales"}</Text></th></tr></thead><tbody role="rowgroup"><Text>{modules.analytics.categorySales.map(row => <tr role="row" key={row.category}><StaffTableCell label="Category"><Text>{row.category}</Text></StaffTableCell><StaffTableCell label="Units"><Text>{row.units}</Text></StaffTableCell><StaffTableCell label="Sales"><Text>{moneyPaise(row.revenuePaise)}</Text></StaffTableCell></tr>)}</Text></tbody></table> : <p><Text>{"No actual paid category sales yet."}</Text></p>}</Text></section></div>}</Text></>}</Text></>;
+}

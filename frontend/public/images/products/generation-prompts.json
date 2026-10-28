@@ -1,0 +1,54 @@
+{
+  "tool": "Built-in image_gen",
+  "purpose": "AI-generated packaging concepts for isolated sample catalogue",
+  "images": [
+    {
+      "file": "haldi-powder.png",
+      "prompt": "Use case: product-mockup. Asset type: square ecommerce product photograph for SON MASALA spice shop sample catalogue. A premium matte ivory resealable stand-up pouch of turmeric powder, with restrained deep forest green branding, thin ochre border, clean perfectly legible text exactly \"SON MASALA\" and \"HALDI POWDER\" and \"100 g\". One small ceramic bowl of golden turmeric powder and two turmeric roots beside pouch. Warm pale cream seamless studio background, soft daylight, subtle grounded shadows, realistic fine paper and powder textures, centered front three-quarter composition, full pouch visible with comfortable margins. One product only. No extra claims, no certification seals, no watermark. Cohesive premium Indian pantry aesthetic. This is a packaging concept for sample data."
+    },
+    {
+      "file": "dhaniya-powder.png",
+      "prompt": "Use case: product-mockup. Square ecommerce product photograph for SON MASALA spice shop sample catalogue. One premium matte ivory resealable stand-up pouch with elegant deep forest green branding, muted green label accents, a ceramic bowl of coriander powder and whole coriander seeds. Clean perfectly legible text exactly \"SON MASALA\", \"DHANIYA POWDER\", \"100 g\". Warm pale cream seamless studio background, soft daylight, grounded shadows, realistic paper and spice texture. Centered front three-quarter composition with the entire pouch and bowl visible with comfortable margins. Consistent premium Indian pantry packaging. No additional claims, no certifications, no watermark. Distinct product photograph, packaging concept for sample data."
+    },
+    {
+      "file": "lal-mirch-powder.png",
+      "prompt": "Use case: product-mockup. Square ecommerce product photograph for SON MASALA spice shop sample catalogue. One premium matte ivory resealable stand-up pouch with elegant deep forest green branding, deep brick red label accents, a ceramic bowl of bright red chilli powder and dried red chillies. Clean perfectly legible text exactly \"SON MASALA\", \"LAL MIRCH POWDER\", \"100 g\". Warm pale cream seamless studio background, soft daylight, grounded shadows, realistic paper and spice texture. Centered front three-quarter composition with the entire pouch and bowl visible with comfortable margins. Consistent premium Indian pantry packaging. No additional claims, no certifications, no watermark. Distinct product photograph, packaging concept for sample data."
+    },
+    {
+      "file": "jeera.png",
+      "prompt": "Use case: product-mockup. Square ecommerce product photograph for SON MASALA spice shop sample catalogue. One premium matte ivory resealable stand-up pouch with elegant deep forest green branding, warm brown label accents, a ceramic bowl of whole cumin seeds and a small scatter of cumin seeds. Clean perfectly legible text exactly \"SON MASALA\", \"JEERA\", \"100 g\". Warm pale cream seamless studio background, soft daylight, grounded shadows, realistic paper and spice texture. Centered front three-quarter composition with the entire pouch and bowl visible with comfortable margins. Consistent premium Indian pantry packaging. No additional claims, no certifications, no watermark. Distinct product photograph, packaging concept for sample data."
+    },
+    {
+      "file": "kali-mirch.png",
+      "prompt": "Use case: product-mockup. Square ecommerce product photograph for SON MASALA sample spice catalogue. One premium matte ivory resealable stand-up pouch, deep forest green branding, charcoal green label accents, a ceramic bowl of whole black peppercorns and a small scatter of peppercorns. Exact legible text \"SON MASALA\", \"KALI MIRCH\", \"100 g\". Warm pale cream seamless studio backdrop, soft daylight, grounded shadows, realistic spice and paper texture. Centered three-quarter front view, full pouch and bowl visible with comfortable margins. Premium Indian pantry aesthetic consistent with Haldi, Dhaniya and Jeera photos. No claims, certifications or watermark. Packaging concept for sample data."
+    },
+    {
+      "file": "choti-elaichi.png",
+      "prompt": "Use case: product-mockup. Square ecommerce product photograph for SON MASALA sample spice catalogue. One premium matte ivory resealable stand-up pouch, deep forest green branding, sage green label accents, a ceramic bowl of whole green cardamom pods and a few split pods revealing seeds. Exact legible text \"SON MASALA\", \"CHOTI ELAICHI\", \"100 g\". Warm pale cream seamless studio backdrop, soft daylight, grounded shadows, realistic spice and paper texture. Centered three-quarter front view, full pouch and bowl visible with comfortable margins. Premium Indian pantry aesthetic consistent with Haldi, Dhaniya and Jeera photos. No claims, certifications or watermark. Packaging concept for sample data."
+    },
+    {
+      "file": "dalchini.png",
+      "prompt": "Use case: product-mockup. Square ecommerce product photograph for SON MASALA sample spice catalogue. One premium matte ivory resealable stand-up pouch, deep forest green branding, cinnamon brown label accents, a ceramic bowl of curled cinnamon sticks and a few sticks tied with natural twine. Exact legible text \"SON MASALA\", \"DALCHINI\", \"100 g\". Warm pale cream seamless studio backdrop, soft daylight, grounded shadows, realistic spice and paper texture. Centered three-quarter front view, full pouch and bowl visible with comfortable margins. Premium Indian pantry aesthetic consistent with Haldi, Dhaniya and Jeera photos. No claims, certifications or watermark. Packaging concept for sample data."
+    },
+    {
+      "file": "laung.png",
+      "prompt": "Use case: product-mockup. Square ecommerce product photograph for SON MASALA sample spice catalogue. One premium matte ivory resealable stand-up pouch, deep forest green branding, deep brown label accents, a ceramic bowl of whole dried cloves with distinct nail shapes. Exact legible text \"SON MASALA\", \"LAUNG\", \"100 g\". Warm pale cream seamless studio backdrop, soft daylight, grounded shadows, realistic paper and spices. Centered three-quarter front view, full pouch and bowl visible with comfortable margins. Premium Indian pantry aesthetic consistent with Haldi and Dhaniya photographs. The spice in the bowl must match the label. No claims, certification or watermark. Packaging concept for sample data."
+    },
+    {
+      "file": "garam-masala.png",
+      "prompt": "Use case: product-mockup. Square ecommerce product photograph for SON MASALA sample spice catalogue. One premium matte ivory resealable stand-up pouch, deep forest green branding, burgundy label accents, a ceramic bowl of warm brown ground masala, cinnamon, star anise and cardamom beside the pouch. Exact legible text \"SON MASALA\", \"GARAM MASALA\", \"100 g\". Warm pale cream seamless studio backdrop, soft daylight, grounded shadows, realistic paper and spices. Centered three-quarter front view, full pouch and bowl visible with comfortable margins. Premium Indian pantry aesthetic consistent with Haldi and Dhaniya photographs. The spice in the bowl must match the label. No claims, certification or watermark. Packaging concept for sample data."
+    },
+    {
+      "file": "chole-masala.png",
+      "prompt": "Use case: product-mockup. Square ecommerce product photograph for SON MASALA sample spice catalogue. One premium matte ivory resealable stand-up pouch, deep forest green branding, ochre and rust label accents, a ceramic bowl of reddish brown spice powder and a small elegant bowl of chickpea curry in the background. Exact legible text \"SON MASALA\", \"CHOLE MASALA\", \"100 g\". Warm pale cream seamless studio backdrop, soft daylight, grounded shadows, realistic paper and spices. Centered three-quarter front view, full pouch and bowl visible with comfortable margins. Premium Indian pantry aesthetic consistent with Haldi and Dhaniya photographs. The spice in the bowl must match the label. No claims, certification or watermark. Packaging concept for sample data."
+    },
+    {
+      "file": "pav-bhaji-masala.png",
+      "prompt": "Use case: product-mockup. Square ecommerce product photograph for SON MASALA sample spice catalogue. One premium matte ivory resealable stand-up pouch, deep forest green branding, burnt orange label accents, a ceramic bowl of red-brown masala powder, and a small bowl of vegetable bhaji with one pav bread behind. Exact legible text \"SON MASALA\", \"PAV BHAJI MASALA\", \"100 g\". Warm pale cream seamless studio backdrop, soft daylight, grounded shadows, realistic paper and spices. Centered three-quarter front view, full pouch and bowl visible with comfortable margins. Premium Indian pantry aesthetic consistent with Haldi and Dhaniya photographs. The spice in the bowl must match the label. No claims, certification or watermark. Packaging concept for sample data."
+    },
+    {
+      "file": "chaat-masala.png",
+      "prompt": "Use case: product-mockup. Square ecommerce product photograph for SON MASALA sample spice catalogue. One premium matte ivory resealable stand-up pouch, deep forest green branding, bright muted teal label accents, a ceramic bowl of pale brown seasoning powder and a small plate of fruit chaat with lemon in the background. Exact legible text \"SON MASALA\", \"CHAAT MASALA\", \"100 g\". Warm pale cream seamless studio backdrop, soft daylight, grounded shadows, realistic paper and spices. Centered three-quarter front view, full pouch and bowl visible with comfortable margins. Premium Indian pantry aesthetic consistent with Haldi and Dhaniya photographs. The spice in the bowl must match the label. No claims, certification or watermark. Packaging concept for sample data."
+    }
+  ]
+}

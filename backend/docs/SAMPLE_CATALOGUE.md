@@ -1,0 +1,17 @@
+# Sample storefront
+
+The development storefront uses the original Atlas database `son_masala`, with `ENABLE_DEMO_CHECKOUT=false`. The user requested generated product artwork and household products in this original database. Drafts are intentionally excluded from public catalogue queries, which require published products with priced variants.
+
+Run `npm run seed:household` from `backend/` to prepare 20 household products with 100 g, 250 g, and 500 g variants. It saves a timestamped backup of the affected products and existing canonical variants under `backend/.runtime/catalogue-backups/`, updates selected drafts, and adds labelled sample prices and stock only where needed. Existing published commercial prices, stock, and variant IDs are preserved. Garam Masala and Chole Masala also retain their existing 50 g and 200 g packs. Newly priced packs are identified as samples; sample products and variants are excluded from production shopping queries. No live payment provider is configured.
+
+The 20 products are Haldi Powder, Dhaniya Powder, Lal Mirch Powder, Jeera, Kali Mirch, Choti Elaichi, Dalchini, Laung, Garam Masala, Chole Masala, Pav Bhaji Masala, Chaat Masala, Rai, Methi Dana, Saunf, Ajwain, Amchur Powder, Hing, Kashmiri Mirch Powder, and Sambar Masala.
+
+Images live in `frontend/public/images/products/`. Exact prompts for the built-in image generation tool are recorded in `generation-prompts.json`, `size-generation-prompts.json`, and `legacy-generation-prompts.json` in that folder. Size artwork is generated as contact sheets. Each variant's `image` and `imageCrop` fields select its own panel, including the printed weight. The size selector, thumbnail gallery, large image, price, SKU, and cart all follow the selected variant. Image metadata survives admin edits and CSV export/import. Products, prices and inventory come from MongoDB.
+
+Run only one backend server: use `npm run dev` during development, or `npm start`. Both use port 5000. Stop an existing backend with Ctrl+C before starting the other command. The frontend runs separately on port 3000. A port-in-use error means another process is listening; changing database credentials will not resolve that error.
+
+For an isolated demo, select a database whose name ends with `_demo`, enable `ENABLE_DEMO_CHECKOUT=true`, then run `npm run seed:demo`. This separate command ensures 20 demo products with 100 g packs. The test fixture keeps its default three products. `.env` changes require restarting the backend. Remaining unpriced drafts need approved prices, inventory, descriptions and publication before appearing in the shop.
+
+Validation: 20 backend tests passed (six isolated-database integration suites skipped without `MONGODB_TEST_URI`), 15 frontend unit tests passed, both lint checks and builds passed. The actual database was checked for all 20 selected household products, all 60 requested size options, existing image files, and preservation of original commercial prices and stock. Run `node scripts/verify-household.js` from `frontend/` with both development servers running to verify sizes/prices, thumbnail selection, selected pack and image in the cart, removal, retained commercial prices, and the mobile gallery. Screenshots are saved under `frontend/verification/household-size-gallery-*.png`.
+
+Development uses `.next-dev` and production builds use `.next`, selected by the Next.js phase. This prevents `npm run build` from replacing JavaScript and CSS files used by a running development server.

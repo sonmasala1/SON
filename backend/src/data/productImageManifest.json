@@ -1,0 +1,456 @@
+{
+  "version": 1,
+  "database": "son_masala",
+  "products": [
+    {
+      "productId": "6adb20437730c0811a71724d",
+      "sku": "SON-WHO-001-JEERA",
+      "slug": "jeera",
+      "name": "Jeera",
+      "hindiName": "जीरा",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [
+        "SAMPLE-JEERA-250",
+        "SAMPLE-JEERA-100",
+        "SAMPLE-JEERA-500"
+      ],
+      "image": "/images/products/jeera.png",
+      "sha256": "29f01b7ca3af12e6dac60e425ddda543bd88cc1673d89ec8b13d632ec2d48d78",
+      "visuallyVerified": true,
+      "prompt": "Existing SON MASALA ivory pouch packaging photograph, visually inspected and reused; gallery first panel extracted where applicable."
+    },
+    {
+      "productId": "6adb20437730c0811a71724f",
+      "sku": "SON-WHO-003-SABUT-DHANIY",
+      "slug": "sabut-dhaniya",
+      "name": "Sabut Dhaniya",
+      "hindiName": "साबुत धनिया",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [],
+      "image": "/images/products/sabut-dhaniya.png",
+      "sha256": "fb07df6084decc9f1dd338a6df3ca1e91b31db9c3d7d4353eea3331d1da7325a",
+      "visuallyVerified": true,
+      "prompt": "Use case: product-mockup. Square SON MASALA ivory resealable pouch with deep green branding, exact text SON MASALA, SABUT DHANIYA, 100 g; bowl of whole coriander seeds, cream backdrop and soft daylight."
+    },
+    {
+      "productId": "6adb20437730c0811a717250",
+      "sku": "SON-WHO-004-KALI-MIRCH",
+      "slug": "kali-mirch",
+      "name": "Kali Mirch",
+      "hindiName": "काली मिर्च",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [
+        "SAMPLE-PEPPER-100",
+        "SAMPLE-PEPPER-250",
+        "SAMPLE-PEPPER-500"
+      ],
+      "image": "/images/products/kali-mirch.png",
+      "sha256": "e610a6bca49dc628e2a9a0388c8d48d062ca587baf53a4dcabd6216fa9929883",
+      "visuallyVerified": true,
+      "prompt": "Existing SON MASALA ivory pouch packaging photograph, visually inspected and reused; gallery first panel extracted where applicable."
+    },
+    {
+      "productId": "6adb20437730c0811a717252",
+      "sku": "SON-WHO-006-LAUNG",
+      "slug": "laung",
+      "name": "Laung",
+      "hindiName": "लौंग",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [
+        "SAMPLE-LAUNG-250",
+        "SAMPLE-LAUNG-500",
+        "SAMPLE-LAUNG-100"
+      ],
+      "image": "/images/products/laung.png",
+      "sha256": "3edf6924f158257f63b687ac396f0c211cddf6c2c8fd5c2a9a33a4f95fa0d1d8",
+      "visuallyVerified": true,
+      "prompt": "Existing SON MASALA ivory pouch packaging photograph, visually inspected and reused; gallery first panel extracted where applicable."
+    },
+    {
+      "productId": "6adb20437730c0811a717253",
+      "sku": "SON-WHO-007-DALCHINI",
+      "slug": "dalchini",
+      "name": "Dalchini",
+      "hindiName": "दालचीनी",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [
+        "SAMPLE-DALCHINI-100",
+        "SAMPLE-DALCHINI-250",
+        "SAMPLE-DALCHINI-500"
+      ],
+      "image": "/images/products/dalchini.png",
+      "sha256": "29dc6f66e1c08c965ac0b44765ef4652c55429acdc9b98489e252fbc8715adeb",
+      "visuallyVerified": true,
+      "prompt": "Existing SON MASALA ivory pouch packaging photograph, visually inspected and reused; gallery first panel extracted where applicable."
+    },
+    {
+      "productId": "6adb20447730c0811a717254",
+      "sku": "SON-WHO-008-CHOTI-ELAICH",
+      "slug": "choti-elaichi",
+      "name": "Elaichi (Green Cardamom)",
+      "hindiName": "छोटी इलायची",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [
+        "SAMPLE-ELAICHI-250",
+        "SAMPLE-ELAICHI-500",
+        "SAMPLE-ELAICHI-100"
+      ],
+      "image": "/images/products/choti-elaichi.png",
+      "sha256": "0dfb660f88576da7224465c498718b0a96777b8b9e0e5b91c4679a80227d83ec",
+      "visuallyVerified": true,
+      "prompt": "Existing SON MASALA ivory pouch packaging photograph, visually inspected and reused; gallery first panel extracted where applicable."
+    },
+    {
+      "productId": "6adb20447730c0811a717255",
+      "sku": "SON-WHO-009-BADI-ELAICHI",
+      "slug": "badi-elaichi",
+      "name": "Badi Elaichi / Kali Elaichi",
+      "hindiName": "बड़ी इलायची",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [],
+      "image": "/images/products/badi-elaichi.png",
+      "sha256": "46c78fd822b33a5050c52a28852e259367b5f7f2451e9cafb0fc6273c3f25192",
+      "visuallyVerified": true,
+      "prompt": "Use case: product-mockup. One square premium ecommerce photograph matching the provided SON MASALA pouch reference. Matte ivory resealable stand-up pouch, deep forest green leaf emblem and branding, muted ochre label border, exact text \"SON MASALA\", \"BADI ELAICHI\", \"100 g\". Only large deeply wrinkled dark brown black cardamom pods, no green cardamom, in a small ivory ceramic bowl beside pouch and illustrated on the packaging. Warm pale cream seamless studio background, soft daylight, natural grounded shadows. Full pouch and bowl visible with comfortable margins. No unrelated spices, no dish, no claims, no seals, no watermark, no UI. Packaging concept."
+    },
+    {
+      "productId": "6adb20447730c0811a717256",
+      "sku": "SON-WHO-010-TEJ-PATTA",
+      "slug": "tej-patta",
+      "name": "Tej Patta",
+      "hindiName": "तेज पत्ता",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [],
+      "image": "/images/products/tej-patta.png",
+      "sha256": "fc13cfd3709d7100066a9183ab5a067de482094ff4552a08c3d0b056b2da089f",
+      "visuallyVerified": true,
+      "prompt": "Use case: product-mockup. One square premium ecommerce photograph matching the provided SON MASALA pouch reference. Matte ivory resealable stand-up pouch, deep forest green leaf emblem and branding, muted ochre label border, exact text \"SON MASALA\", \"TEJ PATTA\", \"100 g\". Only dry elongated olive tan Indian bay leaves with three long veins, in a small ivory ceramic bowl beside pouch and illustrated on the packaging. Warm pale cream seamless studio background, soft daylight, natural grounded shadows. Full pouch and bowl visible with comfortable margins. No unrelated spices, no dish, no claims, no seals, no watermark, no UI. Packaging concept."
+    },
+    {
+      "productId": "6adb20457730c0811a71725e",
+      "sku": "SON-WHO-018-AJWAIN",
+      "slug": "ajwain",
+      "name": "Ajwain",
+      "hindiName": "अजवाइन",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [
+        "SAMPLE-AJWAIN-250",
+        "SAMPLE-AJWAIN-100",
+        "SAMPLE-AJWAIN-500"
+      ],
+      "image": "/images/products/ajwain.png",
+      "sha256": "a08e129fea6601b206e527f14c25bbcd7546e34691d39b321140b6de2acd970c",
+      "visuallyVerified": true,
+      "prompt": "Existing SON MASALA ivory pouch packaging photograph, visually inspected and reused; gallery first panel extracted where applicable."
+    },
+    {
+      "productId": "6adb20457730c0811a717262",
+      "sku": "SON-WHO-022-SAUNF",
+      "slug": "saunf",
+      "name": "Saunf",
+      "hindiName": "सौंफ",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [
+        "SAMPLE-SAUNF-500",
+        "SAMPLE-SAUNF-100",
+        "SAMPLE-SAUNF-250"
+      ],
+      "image": "/images/products/saunf.png",
+      "sha256": "a1405d9b6b33562728dec82507233c0360d298022d0efce988fdd67e653da79d",
+      "visuallyVerified": true,
+      "prompt": "Existing SON MASALA ivory pouch packaging photograph, visually inspected and reused; gallery first panel extracted where applicable."
+    },
+    {
+      "productId": "6adb20457730c0811a717261",
+      "sku": "SON-WHO-021-METHI-DANA",
+      "slug": "methi-dana",
+      "name": "Methi Beej / Methi Dana",
+      "hindiName": "मेथी दाना",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [
+        "SAMPLE-METHI-100",
+        "SAMPLE-METHI-250",
+        "SAMPLE-METHI-500"
+      ],
+      "image": "/images/products/methi-dana.png",
+      "sha256": "3ffb9f589ee4bc0f01fcda5ec7c11c854a777b95d59719cbf5e25caef127dd97",
+      "visuallyVerified": true,
+      "prompt": "Existing SON MASALA ivory pouch packaging photograph, visually inspected and reused; gallery first panel extracted where applicable."
+    },
+    {
+      "productId": "6adb20457730c0811a71725f",
+      "sku": "SON-WHO-019-RAI",
+      "slug": "rai",
+      "name": "Rai",
+      "hindiName": "राई",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [
+        "SAMPLE-RAI-100",
+        "SAMPLE-RAI-500",
+        "SAMPLE-RAI-250"
+      ],
+      "image": "/images/products/rai.png",
+      "sha256": "c5aa692982a1c0895ab1767511556f75a2955ee94a51f916dc01892efae4a11b",
+      "visuallyVerified": true,
+      "prompt": "Existing SON MASALA ivory pouch packaging photograph, visually inspected and reused; gallery first panel extracted where applicable."
+    },
+    {
+      "productId": "6adb20447730c0811a717258",
+      "sku": "SON-WHO-012-JAIPHAL",
+      "slug": "jaiphal",
+      "name": "Jaiphal",
+      "hindiName": "जायफल",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [],
+      "image": "/images/products/jaiphal.png",
+      "sha256": "b06b6b7487e156e68ddb689492b0c7121f3ffaf164f3905d766ac90314ea203a",
+      "visuallyVerified": true,
+      "prompt": "Use case: product-mockup. One square premium ecommerce photograph matching the provided SON MASALA pouch reference. Matte ivory resealable stand-up pouch, deep forest green leaf emblem and branding, muted ochre label border, exact text \"SON MASALA\", \"JAIPHAL\", \"100 g\". Only whole brown oval nutmeg seeds with natural ridged texture, in a small ivory ceramic bowl beside pouch and illustrated on the packaging. Warm pale cream seamless studio background, soft daylight, natural grounded shadows. Full pouch and bowl visible with comfortable margins. No unrelated spices, no dish, no claims, no seals, no watermark, no UI. Packaging concept."
+    },
+    {
+      "productId": "6adb20447730c0811a717259",
+      "sku": "SON-WHO-013-JAVITRI",
+      "slug": "javitri",
+      "name": "Javitri",
+      "hindiName": "जावित्री",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [],
+      "image": "/images/products/javitri.png",
+      "sha256": "ce2b689ae41c58843c97cd3b5ce0e649db16a50a61d0084cbf62684b60122173",
+      "visuallyVerified": true,
+      "prompt": "Use case: product-mockup. One square premium ecommerce photograph matching SON MASALA packaging reference. Matte ivory resealable stand-up pouch with deep forest green leaf emblem and branding, muted ochre border, exact legible text \"SON MASALA\", \"JAVITRI\", \"100 g\". Only whole orange-red lacy mace arils, delicate curled netlike blades, no nutmeg seeds, in a small ivory ceramic bowl beside pouch and illustrated on pouch. Warm pale cream seamless studio background, soft daylight, natural shadows. Entire pouch and bowl visible with comfortable margins. No unrelated spices, prepared food, claims, seals, watermark or UI. Packaging concept."
+    },
+    {
+      "productId": "6adb20457730c0811a717267",
+      "sku": "SON-WHO-027-PIPPALI",
+      "slug": "pippali",
+      "name": "Pipli",
+      "hindiName": "पीपली",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [],
+      "image": "/images/products/pippali.png",
+      "sha256": "871fca8145f11b5b8e69739b1b5035326eaa1be7418d8ce43c4d285add29ede7",
+      "visuallyVerified": true,
+      "prompt": "Use case: product-mockup. One square premium ecommerce photograph matching SON MASALA packaging reference. Matte ivory resealable stand-up pouch with deep forest green leaf emblem and branding, muted ochre border, exact legible text \"SON MASALA\", \"PIPLI\", \"100 g\". Only whole dried long pepper spikes, short dark brown knobbly cylindrical catkins, no black peppercorns, in a small ivory ceramic bowl beside pouch and illustrated on pouch. Warm pale cream seamless studio background, soft daylight, natural shadows. Entire pouch and bowl visible with comfortable margins. No unrelated spices, prepared food, claims, seals, watermark or UI. Packaging concept."
+    },
+    {
+      "productId": "6adb20457730c0811a71725d",
+      "sku": "SON-WHO-017-SUKHI-ADRAK",
+      "slug": "sukhi-adrak",
+      "name": "Soth / Saunth",
+      "hindiName": "सोंठ",
+      "category": "whole-spices",
+      "previousCategory": "whole-spices",
+      "variantSkus": [],
+      "image": "/images/products/sukhi-adrak.png",
+      "sha256": "4e415a82d3a2ecc3d77c750ce4a138a0c89f39a5a36dd03743f92b0dd0db38b8",
+      "visuallyVerified": true,
+      "prompt": "Use case: product-mockup. One square premium ecommerce photograph matching SON MASALA packaging reference. Matte ivory resealable stand-up pouch with deep forest green leaf emblem and branding, muted ochre border, exact legible text \"SON MASALA\", \"SAUNTH\", \"100 g\". Only whole pale beige dried ginger root pieces, chalky knobbly fibrous rhizomes, no fresh ginger or powder, in a small ivory ceramic bowl beside pouch and illustrated on pouch. Warm pale cream seamless studio background, soft daylight, natural shadows. Entire pouch and bowl visible with comfortable margins. No unrelated spices, prepared food, claims, seals, watermark or UI. Packaging concept."
+    },
+    {
+      "productId": "6adb20477730c0811a71727b",
+      "sku": "SON-GRO-001-HALDI-POWDER",
+      "slug": "haldi-powder",
+      "name": "Haldi Powder",
+      "hindiName": "हल्दी पाउडर",
+      "category": "ground-spices",
+      "previousCategory": "ground-spices",
+      "variantSkus": [
+        "SAMPLE-HALDI-100",
+        "SAMPLE-HALDI-500",
+        "SAMPLE-HALDI-250"
+      ],
+      "image": "/images/products/haldi-powder.png",
+      "sha256": "60836c99401061c7abc4948c6b58963138d2451891434d654d791b40e1ef5507",
+      "visuallyVerified": true,
+      "prompt": "Existing SON MASALA ivory pouch packaging photograph, visually inspected and reused; gallery first panel extracted where applicable."
+    },
+    {
+      "productId": "6adb20477730c0811a71727c",
+      "sku": "SON-GRO-002-DHANIYA-POWD",
+      "slug": "dhaniya-powder",
+      "name": "Dhaniya Powder",
+      "hindiName": "धनिया पाउडर",
+      "category": "ground-spices",
+      "previousCategory": "ground-spices",
+      "variantSkus": [
+        "SAMPLE-DHANIYA-100",
+        "SAMPLE-DHANIYA-250",
+        "SAMPLE-DHANIYA-500"
+      ],
+      "image": "/images/products/dhaniya-powder.png",
+      "sha256": "f8c6522b3bb9b3210aeed15978f07274aeb9cf5c4af0ebac7265ed59d2a5676a",
+      "visuallyVerified": true,
+      "prompt": "Existing SON MASALA ivory pouch packaging photograph, visually inspected and reused; gallery first panel extracted where applicable."
+    },
+    {
+      "productId": "6adb20487730c0811a71727d",
+      "sku": "SON-GRO-003-LAL-MIRCH-PO",
+      "slug": "lal-mirch-powder",
+      "name": "Lal Mirch Powder",
+      "hindiName": "लाल मिर्च पाउडर",
+      "category": "ground-spices",
+      "previousCategory": "ground-spices",
+      "variantSkus": [
+        "SAMPLE-MIRCH-100",
+        "SAMPLE-MIRCH-250",
+        "SAMPLE-MIRCH-500"
+      ],
+      "image": "/images/products/lal-mirch-powder.png",
+      "sha256": "6de109cecabdc6700785b6cbeb4ecf721962b0d1385beaea04d0dc408506b686",
+      "visuallyVerified": true,
+      "prompt": "Existing SON MASALA ivory pouch packaging photograph, visually inspected and reused; gallery first panel extracted where applicable."
+    },
+    {
+      "productId": "6adb20487730c0811a71727f",
+      "sku": "SON-GRO-005-JEERA-POWDER",
+      "slug": "jeera-powder",
+      "name": "Jeera Powder",
+      "hindiName": "जीरा पाउडर",
+      "category": "ground-spices",
+      "previousCategory": "ground-spices",
+      "variantSkus": [],
+      "image": "/images/products/jeera-powder.png",
+      "sha256": "e6dd8c68d76c136bfedc6b61137e50803acad962c417fe8b404e0d80152bf38f",
+      "visuallyVerified": true,
+      "prompt": "Use case: product-mockup. One square premium ecommerce photograph matching SON MASALA pouch reference. Matte ivory resealable stand-up pouch, deep forest green leaf emblem and branding, muted ochre border, exact legible text \"SON MASALA\", \"JEERA POWDER\", \"100 g\". A small ivory ceramic bowl of fine warm brown ground cumin powder beside pouch, matching powder illustration on pouch. Warm pale cream seamless studio background, soft daylight, natural shadows. Full pouch and bowl visible with comfortable margins. No prepared food, meat, rice, claims, seals, watermark or UI. Representative packaging concept."
+    },
+    {
+      "productId": "6adb20497730c0811a71728f",
+      "sku": "SON-BLE-001-GARAM-MASALA",
+      "slug": "garam-masala",
+      "name": "Garam Masala",
+      "hindiName": "गरम मसाला",
+      "category": "blended-masalas",
+      "previousCategory": "blended-masalas",
+      "variantSkus": [
+        "SM-GAR-001-50",
+        "SM-GAR-001-100",
+        "SM-GAR-001-200",
+        "SM-GAR-001-500",
+        "SAMPLE-GARAM-250"
+      ],
+      "image": "/images/products/garam-masala.png",
+      "sha256": "0212fde49dae03beba671cd7b26c9acc641bdc2a327e233949492e84d6abe0e4",
+      "visuallyVerified": true,
+      "prompt": "Existing SON MASALA ivory pouch packaging photograph, visually inspected and reused; gallery first panel extracted where applicable."
+    },
+    {
+      "productId": "6adb204a7730c0811a717298",
+      "sku": "SON-BLE-010-BIRYANI-MASA",
+      "slug": "biryani-masala",
+      "name": "Biryani Masala",
+      "hindiName": "बिरयानी मसाला",
+      "category": "blended-masalas",
+      "previousCategory": "blended-masalas",
+      "variantSkus": [
+        "SM-BIR-001-50",
+        "SM-BIR-001-100",
+        "SM-BIR-001-200"
+      ],
+      "image": "/images/products/biryani-masala.png",
+      "sha256": "c1340db6d558e8508e488f024ba3470730a19bff8c72557c732628a1ec892ee0",
+      "visuallyVerified": true,
+      "prompt": "Use case: product-mockup. One square premium ecommerce photograph matching SON MASALA pouch reference. Matte ivory resealable stand-up pouch, deep forest green leaf emblem and branding, muted ochre border, exact legible text \"SON MASALA\", \"BIRYANI MASALA\", \"100 g\". A small ivory ceramic bowl of dry reddish brown finely ground biryani spice blend powder beside pouch, matching powder illustration on pouch. Warm pale cream seamless studio background, soft daylight, natural shadows. Full pouch and bowl visible with comfortable margins. No prepared food, meat, rice, claims, seals, watermark or UI. Representative packaging concept."
+    },
+    {
+      "productId": "6adb20497730c0811a717293",
+      "sku": "SON-BLE-005-CHOLE-MASALA",
+      "slug": "chole-masala",
+      "name": "Chole Masala",
+      "hindiName": "छोले मसाला",
+      "category": "blended-masalas",
+      "previousCategory": "blended-masalas",
+      "variantSkus": [
+        "SM-CHO-001-50",
+        "SM-CHO-001-100",
+        "SM-CHO-001-200",
+        "SAMPLE-CHOLE-250",
+        "SAMPLE-CHOLE-500"
+      ],
+      "image": "/images/products/chole-masala.png",
+      "sha256": "0eebb7173e52b2727f5478ae8f6cfd94747e0a669237b78d321a4b85741d00a9",
+      "visuallyVerified": true,
+      "prompt": "Existing SON MASALA ivory pouch packaging photograph, visually inspected and reused; gallery first panel extracted where applicable."
+    },
+    {
+      "productId": "6adb20497730c0811a717294",
+      "sku": "SON-BLE-006-RAJMA-MASALA",
+      "slug": "rajma-masala",
+      "name": "Rajma Masala",
+      "hindiName": "राजमा मसाला",
+      "category": "blended-masalas",
+      "previousCategory": "blended-masalas",
+      "variantSkus": [
+        "SM-RAJ-001-50",
+        "SM-RAJ-001-100",
+        "SM-RAJ-001-200"
+      ],
+      "image": "/images/products/rajma-masala.png",
+      "sha256": "3e0658c010d573f1af136a4da54a03713c5495f1a83126e985e008aa16bcf278",
+      "visuallyVerified": true,
+      "prompt": "Use case: product-mockup. One square premium ecommerce photograph matching SON MASALA pouch reference. Matte ivory resealable stand-up pouch, deep forest green leaf emblem and branding, muted ochre border, exact legible text \"SON MASALA\", \"RAJMA MASALA\", \"100 g\". A small ivory ceramic bowl of dry warm brick brown finely ground rajma spice blend powder beside pouch, matching powder illustration on pouch. Warm pale cream seamless studio background, soft daylight, natural shadows. Full pouch and bowl visible with comfortable margins. No prepared food, meat, rice, claims, seals, watermark or UI. Representative packaging concept."
+    },
+    {
+      "productId": "6adb20497730c0811a717291",
+      "sku": "SON-BLE-003-SABZI-MASALA",
+      "slug": "sabzi-masala",
+      "name": "Sabji Masala",
+      "hindiName": "सब्जी मसाला",
+      "category": "blended-masalas",
+      "previousCategory": "blended-masalas",
+      "variantSkus": [
+        "SM-SAB-001-100",
+        "SM-SAB-001-200",
+        "SM-SAB-001-500"
+      ],
+      "image": "/images/products/sabzi-masala.png",
+      "sha256": "6ec63da8ca5078ce48c1ef8265fc07beb101a72155fc82593431d5fae5c93b60",
+      "visuallyVerified": true,
+      "prompt": "Use case: product-mockup. One square premium ecommerce photograph matching SON MASALA pouch reference. Matte ivory resealable stand-up pouch with deep forest green leaf emblem and branding, muted ochre label border, exact legible text \"SON MASALA\", \"SABJI MASALA\", \"100 g\". A small ivory ceramic bowl of dry warm ochre brown finely ground vegetable spice blend powder beside pouch, matching powder illustration on pouch. Warm pale cream seamless studio background, soft daylight, natural grounded shadows. Entire pouch and bowl visible with comfortable margins. No prepared food, meat, animals, claims, seals, watermark or UI. Representative packaging concept."
+    },
+    {
+      "productId": "6ae1b186a2be4c4943882136",
+      "sku": "SON-MAS-MUTTON-MASALA",
+      "slug": "mutton-masala",
+      "name": "Mutton Masala",
+      "hindiName": "मटन मसाला",
+      "category": "blended-masalas",
+      "previousCategory": "blended-masalas",
+      "variantSkus": [],
+      "image": "/images/products/mutton-masala.png",
+      "sha256": "9d7f8fb09d8af98e866367853c6934afe4f7163920011b12da63fd63e27816e4",
+      "visuallyVerified": true,
+      "prompt": "Use case: product-mockup. One square premium ecommerce photograph matching SON MASALA pouch reference. Matte ivory resealable stand-up pouch with deep forest green leaf emblem and branding, muted ochre label border, exact legible text \"SON MASALA\", \"MUTTON MASALA\", \"100 g\". A small ivory ceramic bowl of dry deep reddish brown finely ground mutton spice blend powder beside pouch, matching powder illustration on pouch. Warm pale cream seamless studio background, soft daylight, natural grounded shadows. Entire pouch and bowl visible with comfortable margins. No prepared food, meat, animals, claims, seals, watermark or UI. Representative packaging concept."
+    },
+    {
+      "productId": "6adb204a7730c0811a71729a",
+      "sku": "SON-BLE-012-CHICKEN-MASA",
+      "slug": "chicken-masala",
+      "name": "Chicken Masala",
+      "hindiName": "चिकन मसाला",
+      "category": "blended-masalas",
+      "previousCategory": "blended-masalas",
+      "variantSkus": [],
+      "image": "/images/products/chicken-masala.png",
+      "sha256": "061cae252db1658c6c429cb5d6e322fd8004603a8844d9bb6737b9d264342602",
+      "visuallyVerified": true,
+      "prompt": "Use case: product-mockup. One square premium ecommerce photograph matching SON MASALA pouch reference. Matte ivory resealable stand-up pouch with deep forest green leaf emblem and branding, muted ochre label border, exact legible text \"SON MASALA\", \"CHICKEN MASALA\", \"100 g\". A small ivory ceramic bowl of dry golden reddish brown finely ground chicken spice blend powder beside pouch, matching powder illustration on pouch. Warm pale cream seamless studio background, soft daylight, natural grounded shadows. Entire pouch and bowl visible with comfortable margins. No prepared food, meat, animals, claims, seals, watermark or UI. Representative packaging concept."
+    }
+  ]
+}
