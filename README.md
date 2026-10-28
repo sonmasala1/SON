@@ -265,4 +265,5 @@ The shared readable typography, local Inter/Devanagari fonts, icon sizing, touch
 
 Wholesale, distributor operations, live payments/shipping, product administration, and marketing delivery remain required project scope for subsequent work. Sample contact details remain explicitly labelled as requested earlier.
 #   S O N  
+ #   S O N  
  
