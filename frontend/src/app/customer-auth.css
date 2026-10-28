@@ -53,6 +53,10 @@
 .customer-google-button { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 52px; padding: 13px 18px; border: 1px solid #dadce0; border-radius: 9px; background: #fff; color: #242424; font-size: var(--text-body); font-weight: 700; line-height: 1.5; transition: background .15s, border-color .15s; }
 .customer-google-button:hover:not(:disabled) { background: #f8f9fa; border-color: #b8bcc3; }
 .customer-google-button img { width: 20px; height: 20px; flex-shrink: 0; }
+.customer-email-button { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 52px; padding: 13px 18px; border: 1.5px solid #c0392b; border-radius: 9px; background: #fff8f0; color: #c0392b; font-size: var(--text-body); font-weight: 700; line-height: 1.5; transition: background .15s, border-color .15s; }
+.customer-email-button:hover:not(:disabled) { background: #fdecea; border-color: #a93226; }
+.customer-email-button:disabled { opacity: .62; }
+.customer-email-button svg { flex-shrink: 0; }
 .customer-auth-terms { text-align: center; color: #70533f; font-size: var(--text-support); line-height: 1.9; margin-top: 22px; }
 .customer-auth-terms a { color: #66452f; text-decoration: underline; text-underline-offset: 3px; }
 .customer-auth-footer { display: flex; flex-direction: column; align-items: center; gap: 9px; font-size: var(--text-support-small); letter-spacing: .5px; color: #8d725c; padding: 20px 16px 27px; }

@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 const options = { timestamps: true, autoCreate: false, autoIndex: false };
 const ref = { type: mongoose.Schema.Types.ObjectId, ref: 'AdminAccount' };
 const accountSchema = new mongoose.Schema({
-  adminId: { type: String, required: true, unique: true }, fullName: { type: String, required: true },
+  adminId: { type: String, required: true, unique: true },
+  loginId: { type: String, uppercase: true, trim: true }, fullName: { type: String, required: true },
   email: { type: String, required: true, lowercase: true, unique: true }, phone: String,
   passwordHash: { type: String, select: false }, role: { type: String, required: true }, permissions: [String],
   status: { type: String, enum: ['INVITED', 'PENDING_MFA', 'ACTIVE', 'SUSPENDED', 'REVOKED'], default: 'INVITED', index: true },

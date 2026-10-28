@@ -10,6 +10,18 @@ The application uses JavaScript/JSX, Next.js App Router, and a separate Express/
 
 Customer password/email login is retired; `/account` redirects signed-out customers to the unified mobile form. See [customer OTP and persistent-session details](CUSTOMER_AUTH.md). Customer sessions never grant staff access, including legacy customer records with `role: admin`. The old `make:admin` command is disabled. Existing customers must receive a new owner-approved invitation to become staff. There is no public staff signup or owner bootstrap endpoint.
 
+## Local credentials from backend/.env
+
+For the local development installation, configure `ADMIN_ID`, `ADMIN_PASSWORD`, `ADMIN_MFA_SECRET`, `OWNER_USER_ID`, `OWNER_PASSWORD`, and `OWNER_MFA_SECRET` in **backend/.env**. Passwords must contain at least eight characters. MFA secrets are Base32 authenticator setup keys, not fixed numeric sign-in codes. If both roles use the same configured ID, separate internal account IDs preserve role isolation: enter the configured ID at the appropriate `/owner/login` or `/admin/login` route.
+
+From `backend/`, run `npm run staff:sync-env -- --prepare`. This preserves the configured IDs and passwords, generates a missing 32-byte `ADMIN_MFA_ENCRYPTION_KEY`, replaces invalid MFA setup keys, and creates the two local staff accounts with password hashing and encrypted MFA storage. It also writes private enrollment instructions to `.runtime/staff-mfa-setup.html`, which is ignored by Git and is not served by the website. Open that file locally and add each account to Google Authenticator using **Enter a setup key**, selecting **Time based**.
+
+Sign in at `/owner/login` or `/admin/login` with the matching ID and password, plus the current six-digit code shown in the authenticator for that account. Do not enter the setup key itself into the sign-in form. Admin credentials open `/admin/dashboard`; owner credentials open `/owner/dashboard`. Product management is `/admin/modules/products` for authorized staff and the owner.
+
+After changing these local credentials in `.env`, run `npm run staff:sync-env` again and restart the backend. Changing a password or MFA key revokes that account's existing sessions. The command preserves an existing owner identity and does not overwrite invited staff, reactivate suspended accounts, or run in production. Production continues to use the protected bootstrap and invitation flows below. These development accounts use internal non-deliverable email addresses unless `OWNER_EMAIL` and `ADMIN_EMAIL` are supplied; they do not imply verified email ownership.
+
+Customer **Continue with Google** at `/login` is separate from staff Google Authenticator MFA. It uses `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI`. For the default local ports, Google Cloud's Web application OAuth client must have `http://localhost:5000/api/v1/auth/google/callback` as an authorized redirect URI. The encryption key above is required for this flow too. Changing Google configuration requires restarting the backend. A completed customer Google login never grants staff access.
+
 ## Create the first owner
 
 Run these steps yourself in a trusted deployment terminal. No owner ID or password is supplied by the repository. Automated tests create random credentials only in temporary databases; they cannot be used in the visible application.

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { AdminAccount, AdminPasskey, AdminChallenge } from '../models/administration.js';
 import { parse } from '../validators/commerce.js';
-import { createChallenge, getChallenge, consumeChallenge, makeSession, sendStaffSession, failedLogin } from '../services/staffAuthService.js';
+import { createChallenge, getChallenge, consumeChallenge, makeSession, sendStaffSession, failedLogin, staffLoginFilter } from '../services/staffAuthService.js';
 import { digest, equals, decryptSecret, mfaStep } from '../services/staffCrypto.js';
 import { audit, securityNow } from '../services/staffAudit.js';
 import { httpError } from '../utils/httpError.js';
@@ -42,7 +42,7 @@ export async function registerPasskeyVerify(req, res, next) {
 export const passkeyLoginOptions = realm => async (req, res, next) => {
   try {
     const { adminId } = parse(z.object({ adminId: z.string().trim().toUpperCase().max(40) }).strict(), req.body);
-    const account = await AdminAccount.findOne({ adminId, status: 'ACTIVE', mfaEnabled: true, role: realm === 'owner' ? 'OWNER' : { $ne: 'OWNER' } });
+    const account = await AdminAccount.findOne({ ...staffLoginFilter(realm, adminId), status: 'ACTIVE', mfaEnabled: true });
     if (!account || account.lockedUntil > new Date(securityNow(req))) { await audit(req, 'STAFF_PASSKEY_FAILED', { targetId: account?.id || adminId, result: 'FAILURE' }); throw httpError(401, 'Passkey sign-in is unavailable for this account.'); }
     const keys = await AdminPasskey.find({ accountId: account._id });
     if (!keys.length) { await audit(req, 'STAFF_PASSKEY_FAILED', { targetId: account.id, result: 'FAILURE' }); throw httpError(401, 'Passkey sign-in is unavailable for this account.'); }

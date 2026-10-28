@@ -113,7 +113,6 @@ export default function Header() {
     );
   const links = [
     ["Home", "/"],
-    ["Shop", "/shop"],
     ["Categories", "/shop#categories"],
     ["About", "/about"],
     ["Contact", "/contact"],
@@ -132,7 +131,7 @@ export default function Header() {
                 {links.map(([name, href]) => (
                   <Link
                     onClick={() => setMenu(false)}
-                    className={pathname === href ? "active" : ""}
+                    className={pathname === href.split("#")[0] ? "active" : ""}
                     key={href}
                     href={href}
                   >

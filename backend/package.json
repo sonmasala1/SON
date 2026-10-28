@@ -17,7 +17,8 @@
     "seed:masala": "node scripts/seedMasalaProducts.js",
     "make:admin": "node scripts/make-admin.js",
     "owner:bootstrap": "node scripts/owner-bootstrap.js",
-    "owner:recover": "node scripts/owner-bootstrap.js --recover"
+    "owner:recover": "node scripts/owner-bootstrap.js --recover",
+    "staff:sync-env": "node scripts/syncStaffEnvironment.js"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",

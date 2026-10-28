@@ -7,6 +7,7 @@ const googleLoginErrors = {
   account_link_required: 'Use mobile OTP for your existing account. Google sign-in cannot link it automatically.',
   account_unavailable: 'This account is unavailable. Please contact support.',
   failed: 'We couldn’t complete Google sign-in. Please try again or use mobile OTP.',
+  database_unavailable: 'Database is temporarily busy. Please try signing in again in a moment.',
 };
 export const googleLoginError = reason => Object.hasOwn(googleLoginErrors, reason) ? googleLoginErrors[reason] : '';
 export function mobileDigits(value) { const digits = value.replace(/\D/g, ''); return (digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits).slice(0, 10); }

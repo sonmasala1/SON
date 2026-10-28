@@ -14,6 +14,7 @@ import { previewCheckout, demoPayment, showOrder } from '../controllers/checkout
 import { getReviews, createReview } from '../controllers/reviewController.js';
 import { staffRouter } from './staff.js';
 import { requestCustomerOtp, verifyCustomerOtp, resendCustomerOtp } from '../controllers/customerOtpController.js';
+import { requestEmailOtp, verifyEmailOtp, resendEmailOtp } from '../controllers/emailOtpController.js';
 import { customerOrigin } from '../services/customerSessionService.js';
 import { startGoogleLogin, googleLoginCallback } from '../controllers/googleAuthController.js';
 import { showWishlist, changeWishlist } from '../controllers/wishlistController.js';
@@ -43,6 +44,10 @@ router.post('/auth/logout', customerOrigin, logout);
 router.post(['/auth/send-otp', '/auth/otp/request'], authLimit, customerOrigin, requestCustomerOtp);
 router.post(['/auth/verify-otp', '/auth/otp/verify'], authLimit, customerOrigin, verifyCustomerOtp);
 router.post('/auth/resend-otp', authLimit, customerOrigin, resendCustomerOtp);
+// Email OTP routes
+router.post('/auth/email/send-otp',    authLimit, customerOrigin, requestEmailOtp);
+router.post('/auth/email/verify-otp',  authLimit, customerOrigin, verifyEmailOtp);
+router.post('/auth/email/resend-otp',  authLimit, customerOrigin, resendEmailOtp);
 router.post('/auth/google/start', authLimit, customerOrigin, startGoogleLogin);
 router.get('/auth/google/callback', authLimit, googleLoginCallback);
 router.get('/auth/orders', requireCustomer, customerOrders);

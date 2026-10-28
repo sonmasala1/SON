@@ -11,12 +11,13 @@ import InventoryReservation from '../models/InventoryReservation.js';
 import { administrationModels, AdminRole, AdminPermission } from '../models/administration.js';
 import { permissionGroups, ownerOnlyPermission, defaultRoles } from './permissions.js';
 import { CustomerSession, CustomerOtp, CustomerAuthThrottle } from '../models/customerAuthentication.js';
+import { EmailOtp, EmailThrottle } from '../models/emailAuthentication.js';
 import GoogleLoginAttempt from '../models/GoogleLoginAttempt.js';
 import Wishlist from '../models/Wishlist.js';
 
 export async function initializeModels() {
   // Create collections and indexes only after the connection is established.
-  for (const model of [Product, Subscriber, Category, ProductVariant, Cart, User, Wishlist, Order, Payment, Review, InventoryReservation, CustomerSession, CustomerOtp, CustomerAuthThrottle, GoogleLoginAttempt, ...administrationModels]) {
+  for (const model of [Product, Subscriber, Category, ProductVariant, Cart, User, Wishlist, Order, Payment, Review, InventoryReservation, CustomerSession, CustomerOtp, CustomerAuthThrottle, EmailOtp, EmailThrottle, GoogleLoginAttempt, ...administrationModels]) {
     await model.createCollection();
     await model.createIndexes();
   }

@@ -68,9 +68,23 @@ export async function signInGoogleCustomer(req, identity) {
       await mongoose.connection.transaction(async session => {
         let user = await User.findOne({ googleSubject: identity.subject }).session(session);
         if (!user) {
-          // A matching email is not consent to link a phone/legacy account or disclose its history.
-          if (await User.exists({ email: identity.email }).session(session)) throw Object.assign(httpError(409, 'Use mobile OTP for your existing account.'), { googleReason: 'account_link_required' });
-          [user] = await User.create([{ name: identity.name, email: identity.email, googleSubject: identity.subject, emailVerifiedAt: new Date(customerNow(req)), role: 'CUSTOMER', accountStatus: 'ACTIVE' }], { session });
+          user = await User.findOne({ email: identity.email }).session(session);
+          if (user) {
+            user.googleSubject = identity.subject;
+            if (!user.name || user.name === 'SON MASALA Customer') user.name = identity.name;
+            user.emailVerified = true;
+            user.emailVerifiedAt = new Date(customerNow(req));
+          } else {
+            [user] = await User.create([{
+              name: identity.name,
+              email: identity.email,
+              googleSubject: identity.subject,
+              emailVerified: true,
+              emailVerifiedAt: new Date(customerNow(req)),
+              role: 'CUSTOMER',
+              accountStatus: 'ACTIVE'
+            }], { session });
+          }
         }
         if (['SUSPENDED', 'DELETED'].includes(user.accountStatus)) throw Object.assign(httpError(403, 'Your account is unavailable.'), { googleReason: 'account_unavailable' });
         user.lastLoginAt = new Date(customerNow(req)); await user.save({ session });
