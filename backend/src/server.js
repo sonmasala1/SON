@@ -11,8 +11,8 @@ async function start() {
   const connected = await maintainDatabaseConnection(env.MONGODB_URI, env.MONGODB_DB_NAME);
   if (!connected) throw new Error('MongoDB did not become ready before startup.');
   const app = createApp({ allowedOrigins: env.allowedOrigins, config: { nodeEnv: env.NODE_ENV, demoEnabled: env.ENABLE_DEMO_CHECKOUT === 'true', deliveryChargePaise: env.DELIVERY_CHARGE_PAISE, freeDeliveryThresholdPaise: env.FREE_DELIVERY_THRESHOLD_PAISE } });
-  const server = app.listen(env.PORT, () => {
-    console.log(`SON MASALA API listening on http://localhost:${env.PORT}/api/v1`);
+  const server = app.listen(env.PORT, '0.0.0.0', () => {
+    console.log(`SON MASALA API listening on port ${env.PORT}/api/v1`);
     if (env.MONGODB_DB_NAME) console.log(`Configured catalogue database: ${env.MONGODB_DB_NAME}`);
     if (env.ENABLE_DEMO_CHECKOUT === 'true') console.log('Demo checkout enabled. Sample products require an isolated demo/test database.');
   });

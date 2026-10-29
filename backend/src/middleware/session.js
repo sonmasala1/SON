@@ -2,7 +2,7 @@ import { randomBytes, createHash } from 'node:crypto';
 import { readCustomerSession } from '../services/customerSessionService.js';
 import { httpError } from '../utils/httpError.js';
 
-export const cookieOptions = (req, persistent = true) => ({ httpOnly: true, sameSite: 'lax', secure: req.app.locals.config.nodeEnv === 'production', path: '/', ...(persistent ? { maxAge: 30 * 24 * 60 * 60 * 1000 } : {}) });
+export const cookieOptions = (req, persistent = true) => ({ httpOnly: true, sameSite: req.app.locals.config.nodeEnv === 'production' ? 'none' : 'lax', secure: req.app.locals.config.nodeEnv === 'production', path: '/', ...(persistent ? { maxAge: 30 * 24 * 60 * 60 * 1000 } : {}) });
 export async function identifyCustomer(req, res, next) {
   try {
     let guest = req.cookies.son_guest;

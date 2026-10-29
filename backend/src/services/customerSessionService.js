@@ -8,7 +8,7 @@ export const CUSTOMER_IDLE_MS = 30 * 86400000;
 export const CUSTOMER_MAX_MS = 90 * 86400000;
 export const customerNow = req => req.app.locals.config.clock?.() ?? Date.now();
 export const tokenHash = value => createHash('sha256').update(value).digest('hex');
-export const customerCookie = (req, maxAge) => ({ httpOnly: true, secure: req.app.locals.config.nodeEnv === 'production', sameSite: 'lax', path: '/', ...(maxAge === undefined ? {} : { maxAge }) });
+export const customerCookie = (req, maxAge) => ({ httpOnly: true, secure: req.app.locals.config.nodeEnv === 'production', sameSite: req.app.locals.config.nodeEnv === 'production' ? 'none' : 'lax', path: '/', ...(maxAge === undefined ? {} : { maxAge }) });
 export const publicCustomer = user => user ? { id: user.id, name: user.name, fullName: user.name, email: user.email, phone: user.phone, phoneVerified: Boolean(user.phoneVerified), emailVerified: Boolean(user.emailVerified), verificationSource: user.phoneVerificationSource, role: 'CUSTOMER', lastLoginAt: user.lastLoginAt } : null;
 
 export async function createCustomerSession(req, user, verificationSource, session) {

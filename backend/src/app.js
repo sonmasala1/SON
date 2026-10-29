@@ -14,14 +14,15 @@ export function safeRequestUrl(req) {
 
 export function createApp({ allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'], config = {} } = {}) {
   const app = express();
+  app.set('trust proxy', 1);
   app.locals.config = {
     nodeEnv: process.env.NODE_ENV || 'development', demoEnabled: process.env.ENABLE_DEMO_CHECKOUT === 'true', deliveryChargePaise: 4900, freeDeliveryThresholdPaise: 49900,
     mfaEncryptionKey: process.env.ADMIN_MFA_ENCRYPTION_KEY, authDevPreview: process.env.AUTH_DEV_PREVIEW === 'true',
-    webAuthnRpId: process.env.ADMIN_WEBAUTHN_RP_ID || 'localhost', webAuthnOrigin: process.env.STAFF_APP_ORIGIN || 'http://localhost:3000',
+    webAuthnRpId: process.env.ADMIN_WEBAUTHN_RP_ID || new URL(process.env.STAFF_APP_ORIGIN || (process.env.NODE_ENV === 'production' ? 'https://son-dusky.vercel.app' : 'http://localhost:3000')).hostname, webAuthnOrigin: process.env.STAFF_APP_ORIGIN || (process.env.NODE_ENV === 'production' ? 'https://son-dusky.vercel.app' : 'http://localhost:3000'),
     smtpHost: process.env.SMTP_HOST, smtpPort: Number(process.env.SMTP_PORT || 587), smtpUser: process.env.SMTP_USER, smtpPassword: process.env.SMTP_PASSWORD, smtpFrom: process.env.SMTP_FROM,
     twilioSid: process.env.TWILIO_ACCOUNT_SID, twilioToken: process.env.TWILIO_AUTH_TOKEN, smsFrom: process.env.TWILIO_SMS_FROM, whatsappFrom: process.env.TWILIO_WHATSAPP_FROM,
     whatsappOtpContentSid: process.env.TWILIO_WHATSAPP_OTP_CONTENT_SID, smsMessagingServiceSid: process.env.TWILIO_SMS_MESSAGING_SERVICE_SID, smsOtpTemplate: process.env.SMS_OTP_TEMPLATE,
-    googleClientId: process.env.GOOGLE_CLIENT_ID, googleClientSecret: process.env.GOOGLE_CLIENT_SECRET, googleRedirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/api/v1/auth/google/callback',
+    googleClientId: process.env.GOOGLE_CLIENT_ID, googleClientSecret: process.env.GOOGLE_CLIENT_SECRET, googleRedirectUri: process.env.GOOGLE_REDIRECT_URI || ((process.env.NODE_ENV === 'production') ? 'https://son-5wk9.onrender.com/api/v1/auth/google/callback' : 'http://localhost:5000/api/v1/auth/google/callback'),
     ...config,
   };
   app.locals.allowedOrigins = allowedOrigins;

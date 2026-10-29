@@ -12,7 +12,7 @@ import { httpError } from '../utils/httpError.js';
 export const GOOGLE_FLOW_COOKIE = 'son_google_flow';
 export const GOOGLE_FLOW_MS = 10 * 60000;
 const randomToken = () => randomBytes(32).toString('base64url');
-export function googleFlowCookie(req, clear = false) { return { httpOnly: true, secure: req.app.locals.config.nodeEnv === 'production', sameSite: 'lax', path: '/api/v1/auth/google', ...clear ? {} : { maxAge: GOOGLE_FLOW_MS } }; }
+export function googleFlowCookie(req, clear = false) { return { httpOnly: true, secure: req.app.locals.config.nodeEnv === 'production', sameSite: req.app.locals.config.nodeEnv === 'production' ? 'none' : 'lax', path: '/api/v1/auth/google', ...clear ? {} : { maxAge: GOOGLE_FLOW_MS } }; }
 export function customerReturnTo(value) {
   // eslint-disable-next-line no-control-regex -- Control characters are intentionally rejected in redirect destinations.
   if (typeof value !== 'string' || value.length > 2048 || !value.startsWith('/') || value.startsWith('//') || /[\\\u0000-\u001f\u007f]/u.test(value)) return '/account';

@@ -4,7 +4,7 @@ import { securityNow, audit } from '../services/staffAudit.js';
 import { httpError } from '../utils/httpError.js';
 import { allPermissions } from '../config/permissions.js';
 
-export function staffCookie(req, realm, clear = false) { return { httpOnly: true, secure: req.app.locals.config.nodeEnv === 'production', sameSite: 'strict', path: '/api/v1', ...(clear ? {} : { maxAge: realm === 'owner' ? 4 * 3600000 : 8 * 3600000 }) }; }
+export function staffCookie(req, realm, clear = false) { return { httpOnly: true, secure: req.app.locals.config.nodeEnv === 'production', sameSite: req.app.locals.config.nodeEnv === 'production' ? 'none' : 'strict', path: '/api/v1', ...(clear ? {} : { maxAge: realm === 'owner' ? 4 * 3600000 : 8 * 3600000 }) }; }
 export function staffOrigin(req, _res, next) {
   const origin = req.get('origin');
   if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && (!origin || !req.app.locals.allowedOrigins.includes(origin))) return next(httpError(403, 'The request origin is not allowed.'));

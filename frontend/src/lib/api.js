@@ -1,4 +1,10 @@
-export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '');
+const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL;
+const productionApiBaseUrl = 'https://son-5wk9.onrender.com/api/v1';
+export const API_BASE_URL = (configuredApiBaseUrl || (process.env.NODE_ENV === 'production' ? productionApiBaseUrl : 'http://localhost:5000/api/v1')).replace(/\/+$/, '');
+
+if (process.env.NODE_ENV === 'production' && /^https?:\/\/localhost(?:[:/]|$)/i.test(API_BASE_URL)) {
+  throw new Error('NEXT_PUBLIC_API_BASE_URL must not use localhost in production.');
+}
 
 export class ApiError extends Error {
   constructor(message, status = 0) { super(message); this.name = 'ApiError'; this.status = status; }

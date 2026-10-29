@@ -20,9 +20,10 @@ const schema = z.object({
 export function getEnv() {
   const env = schema.parse(process.env);
   if (env.NODE_ENV === 'production') {
-    const origin = new URL(process.env.STAFF_APP_ORIGIN || 'http://invalid');
-    const rpId = process.env.ADMIN_WEBAUTHN_RP_ID;
-    if (origin.protocol !== 'https:' || !rpId || !(origin.hostname === rpId || origin.hostname.endsWith(`.${rpId}`)) || Buffer.from(process.env.ADMIN_MFA_ENCRYPTION_KEY || '', 'base64').length !== 32) throw new Error('Production staff security requires HTTPS origin, RP ID, and a 32-byte encryption key.');
+    const origin = new URL(process.env.STAFF_APP_ORIGIN || 'https://son-dusky.vercel.app');
+    const rpId = process.env.ADMIN_WEBAUTHN_RP_ID || origin.hostname;
+    if (origin.protocol !== 'https:' || !(origin.hostname === rpId || origin.hostname.endsWith(`.${rpId}`)) || Buffer.from(process.env.ADMIN_MFA_ENCRYPTION_KEY || '', 'base64').length !== 32) throw new Error('Production staff security requires an HTTPS origin, a matching RP ID, and a 32-byte encryption key.');
+    if (!env.MONGODB_URI || !env.MONGODB_DB_NAME) throw new Error('Production requires MONGODB_URI and MONGODB_DB_NAME.');
   }
   const configured = (env.CORS_ORIGINS || env.CORS_ORIGIN || '').split(',').map(value => value.trim()).filter(Boolean);
   const development = env.NODE_ENV === 'production' ? [] : ['http://localhost:3000', 'http://localhost:3001'];
