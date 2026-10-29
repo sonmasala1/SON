@@ -34,10 +34,9 @@
     "morgan": "^1.10.0",
     "nodemailer": "^10.1.1",
     "otpauth": "^9.5.2",
-    "zod": "^3.22.4"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "eslint": "^8.53.0",
     "eslint": "^8.53.0"
   },
   "type": "module",
