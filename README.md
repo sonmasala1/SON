@@ -53,7 +53,7 @@ npm run dev
 
 Configure the required environment variables before starting the application.
 
-Local frontend settings belong in `frontend/.env.local`; local backend origin/cookie settings belong in `backend/.env.local`. Existing database credentials stay in the backend environment. Production variables belong in Vercel and Render. See [the environment and logging report](backend/docs/LOCAL_PRODUCTION_LOGGING_REPORT.md) for exact settings, request ID troubleshooting, changes and verification results.
+Local frontend settings belong in `frontend/.env`; local backend origin/cookie settings belong in `backend/.env`. Existing database credentials stay in the backend environment. Production variables belong in Vercel and Render. See [the environment and logging report](backend/docs/LOCAL_PRODUCTION_LOGGING_REPORT.md) for exact settings, request ID troubleshooting, changes and verification results.
 
 ## Local URLs
 

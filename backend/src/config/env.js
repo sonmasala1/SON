@@ -4,10 +4,7 @@ import { z } from 'zod';
 import dns from 'node:dns';
 import { isIP } from 'node:net';
 
-// Render supplies process.env. Local overrides must never override that runtime.
-if (!process.env.RENDER && !['production', 'test'].includes(process.env.NODE_ENV)) {
-  dotenv.config({ path: fileURLToPath(new URL('../../.env.local', import.meta.url)) });
-}
+// Load local configuration only from backend/.env. Render and other runtimes supply process.env.
 dotenv.config({ path: fileURLToPath(new URL('../../.env', import.meta.url)) });
 
 const schema = z.object({

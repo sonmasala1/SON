@@ -35,6 +35,8 @@ export function createApp({ allowedOrigins = ['http://localhost:3000', 'https://
       callback(Object.assign(new Error('Origin is not allowed'), { status: 403, logReason: 'cors_origin_rejected' }));
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Request-ID', 'Idempotency-Key'],
     exposedHeaders: ['Retry-After', 'X-Request-ID'],
   }));
   app.use(express.text({ type: 'text/csv', limit: '2mb' }));

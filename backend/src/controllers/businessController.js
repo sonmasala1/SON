@@ -2,8 +2,10 @@ import { z } from 'zod';
 import mongoose from 'mongoose';
 import Order from '../models/Order.js';
 import Payment from '../models/Payment.js';
+import InventoryReservation from '../models/InventoryReservation.js';
 import Product from '../models/Product.js';
 import ProductVariant from '../models/ProductVariant.js';
+import StockMovement from '../models/StockMovement.js';
 import User from '../models/User.js';
 import { AdminSession, AdminPasskey } from '../models/administration.js';
 import { parse, objectId } from '../validators/commerce.js';
@@ -34,7 +36,7 @@ export async function businessDashboard(req, res, next) {
 }
 export const listBusinessData = type => async (_req, res, next) => {
   try {
-    const sources = { orders: () => Order.find().select('publicId paymentStatus paymentMode isDemo fulfillmentStatus totals delivery.fullName delivery.email createdAt').sort({ createdAt: -1 }).limit(100).lean(), products: () => Product.find().select('name slug category status isDemo').sort({ name: 1 }).limit(100).lean(), customers: () => User.find().select('name email phone createdAt').sort({ createdAt: -1 }).limit(100).lean(), inventory: () => ProductVariant.find().populate('productId', 'name').select('productId sku label stock isDemo').sort({ stock: 1 }).limit(100).lean(), payments: () => Payment.find().select('orderId paymentMode status amountPaise isDemo createdAt').sort({ createdAt: -1 }).limit(100).lean(), shipping: () => Order.find().select('publicId isDemo fulfillmentStatus createdAt').sort({ createdAt: -1 }).limit(100).lean() };
+    const sources = { orders: () => Order.find().select('publicId paymentStatus paymentMode isDemo fulfillmentStatus items totals delivery createdAt').sort({ createdAt: -1 }).limit(100).lean(), products: () => Product.find().select('name slug category status isDemo').sort({ name: 1 }).limit(100).lean(), customers: () => User.find().select('name email phone createdAt').sort({ createdAt: -1 }).limit(100).lean(), inventory: () => ProductVariant.find().populate('productId', 'name').select('productId sku label stock isDemo').sort({ stock: 1 }).limit(100).lean(), payments: () => Payment.find().select('orderId paymentMode status amountPaise isDemo createdAt').sort({ createdAt: -1 }).limit(100).lean(), shipping: () => Order.find().select('publicId isDemo fulfillmentStatus createdAt').sort({ createdAt: -1 }).limit(100).lean() };
     res.json({ success: true, records: await sources[type]() });
   } catch (error) { next(error); }
 };
@@ -45,16 +47,33 @@ export async function updateInventory(req, res, next) {
       const item = await ProductVariant.findById(id).session(session);
       if (!item) throw httpError(404, 'Inventory record not found.');
       await ProductVariant.updateOne({ _id: id }, { stock: input.stock }, { session, runValidators: true });
+      await StockMovement.create([{ variantId: id, productId: item.productId, adminId: req.staff._id, quantityBefore: item.stock, quantityAfter: input.stock, quantityDelta: input.stock - item.stock, reason: 'ADMIN_ADJUSTMENT' }], { session });
       await audit(req, 'INVENTORY_UPDATED', { targetId: id, changes: { before: item.stock, after: input.stock } }, session);
     }); res.json({ success: true });
   } catch (error) { next(error); }
 }
 export async function updateOrder(req, res, next) {
   try {
-    const id = parse(objectId, req.params.id); const input = parse(z.object({ fulfillmentStatus: z.enum(['NEW', 'PROCESSING', 'PACKED']) }).strict(), req.body);
+    const id = parse(objectId, req.params.id);
+    const input = parse(z.object({
+      paymentStatus: z.enum(['PENDING', 'PAID', 'CANCELLED']).optional(),
+      fulfillmentStatus: z.enum(['PLACED', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED']).optional(),
+    }).refine(value => value.paymentStatus || value.fulfillmentStatus, { message: 'No order status was provided.' }).strict(), req.body);
     await mongoose.connection.transaction(async session => {
       const order = await Order.findById(id).session(session); if (!order) throw httpError(404, 'Order not found.');
-      await Order.updateOne({ _id: id }, input, { session });
+      if (input.paymentStatus === 'PAID' && order.paymentStatus !== 'PAID') {
+        await InventoryReservation.updateMany({ orderId: id, status: 'HELD' }, { status: 'CONSUMED' }, { session });
+      }
+      if ((input.paymentStatus === 'CANCELLED' || input.fulfillmentStatus === 'CANCELLED') && order.paymentStatus !== 'PAID') {
+        for (const reservation of await InventoryReservation.find({ orderId: id, status: 'HELD' }).session(session)) {
+          await ProductVariant.updateOne({ _id: reservation.variantId }, { $inc: { stock: reservation.quantity } }, { session });
+          reservation.status = 'RELEASED'; await reservation.save({ session });
+        }
+        input.paymentStatus ||= 'CANCELLED';
+        input.fulfillmentStatus ||= 'CANCELLED';
+      }
+      await Order.updateOne({ _id: id }, { $set: input }, { session });
+      if (input.paymentStatus) await Payment.updateOne({ orderId: id }, { $set: { status: input.paymentStatus } }, { session });
       await audit(req, 'ORDER_STATUS_UPDATED', { targetId: id, changes: { before: order.fulfillmentStatus, after: input.fulfillmentStatus } }, session);
     }); res.json({ success: true });
   } catch (error) { next(error); }

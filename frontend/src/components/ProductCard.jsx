@@ -18,8 +18,9 @@ export default function ProductCard({ product, detail = false }) {
   const [variantIndex, setVariantIndex] = useState(0);
   const [imageFailed, setImageFailed] = useState(false);
   const [selectedGallery, setSelectedGallery] = useState(null);
+  const [adding, setAdding] = useState(false);
 
-  const { addToCart, wishlist, toggleWishlist, busy, loading, user, wishlistBusy } = useStore();
+  const { addToCart, wishlist, toggleWishlist, loading, user, wishlistBusy } = useStore();
   const router = useRouter();
   const { locale } = useLocale();
   const name = productName(product, locale);
@@ -55,7 +56,23 @@ export default function ProductCard({ product, detail = false }) {
   }
 
   async function buyNow() {
-    if (await addToCart(product, variant, false)) router.push(user ? '/checkout' : '/login?next=%2Fcheckout');
+    if (adding || !available) return;
+    setAdding(true);
+    try {
+      if (await addToCart(product, variant, false)) router.push(user ? '/checkout' : '/login?next=%2Fcheckout');
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function addSelectedToCart() {
+    if (adding || !available) return;
+    setAdding(true);
+    try {
+      await addToCart(product, variant, false);
+    } finally {
+      setAdding(false);
+    }
   }
 
   return (
@@ -170,10 +187,10 @@ export default function ProductCard({ product, detail = false }) {
 
         {/* Actions */}
         <div className="product-actions">
-          <button className="button" disabled={!available || busy || loading} onClick={() => addToCart(product, variant)}>
+          <button className="button" disabled={!available || adding || loading} onClick={addSelectedToCart}>
             <Icon name="bag" size={24} /><Text>{isDraft ? 'Coming Soon' : available ? 'Add to Cart' : 'Unavailable'}</Text>
           </button>
-          <button className="button button-outline" disabled={!available || busy || loading} onClick={buyNow}>
+          <button className="button button-outline" disabled={!available || adding || loading} onClick={buyNow}>
             <Text>Buy Now</Text>
           </button>
         </div>

@@ -252,7 +252,14 @@ export default function ProductManagement() {
         <ProductFormField label="Weight (g)" type="number" min="1" value={variant.weightGrams ?? ''} onChange={event => updateVariant(index, 'weightGrams', event.target.value)} />
         <ProductFormField label="Selling price (INR)" type="number" min="0" step="0.01" value={variant.price ?? ''} onChange={event => updateVariant(index, 'price', event.target.value)} />
         <ProductFormField label="MRP (INR)" type="number" min="0" step="0.01" value={variant.mrp ?? ''} onChange={event => updateVariant(index, 'mrp', event.target.value)} />
-        <ProductFormField label="Stock" type="number" min="0" max="10000000" value={variant.stock ?? 0} onChange={event => updateVariant(index, 'stock', event.target.value)} />
+        <label className="staff-form-field">
+          <Text>{"Stock"}</Text>
+          <div className="staff-inline-form">
+            <button type="button" className="button button-outline button-small" aria-label={`Decrease stock for ${variant.label}`} onClick={() => updateVariant(index, 'stock', Math.max(0, Number(variant.stock || 0) - 1))}>−</button>
+            <input type="number" min="0" max="10000000" value={variant.stock ?? 0} onChange={event => updateVariant(index, 'stock', event.target.value)} aria-label={`Stock for ${variant.label}`} />
+            <button type="button" className="button button-outline button-small" aria-label={`Increase stock for ${variant.label}`} onClick={() => updateVariant(index, 'stock', Math.min(10000000, Number(variant.stock || 0) + 1))}>+</button>
+          </div>
+        </label>
         <button type="button" className="text-link danger-link" onClick={() => setField('variants', form.variants.filter((_, position) => position !== index))}><Text>{"Remove pack"}</Text></button>
       </div>)}
       <div className="staff-actions"><button type="button" className="button button-outline button-small" onClick={addVariant}><Text>{"Add pack size"}</Text></button><button className="button button-small" disabled={busy || (!editingId && !mayCreate) || (editingId && !mayUpdate)}><Text>{busy ? 'Saving…' : 'Save product'}</Text></button>{editingId && <button type="button" className="button button-outline button-small" onClick={startNew}><Text>{"Cancel"}</Text></button>}</div>

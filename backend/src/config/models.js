@@ -9,6 +9,7 @@ import Order from '../models/Order.js';
 import Payment from '../models/Payment.js';
 import Review from '../models/Review.js';
 import InventoryReservation from '../models/InventoryReservation.js';
+import StockMovement from '../models/StockMovement.js';
 import { administrationModels, AdminRole, AdminPermission } from '../models/administration.js';
 import { permissionGroups, ownerOnlyPermission, defaultRoles } from './permissions.js';
 import { CustomerSession, CustomerOtp, CustomerAuthThrottle } from '../models/customerAuthentication.js';
@@ -21,7 +22,7 @@ export const modelsAreReady = () => Boolean(initializedDatabase && initializedDa
 
 export async function initializeModels() {
   // Create collections and indexes only after the connection is established.
-  for (const model of [Product, Subscriber, Category, ProductVariant, Cart, User, Wishlist, Order, Payment, Review, InventoryReservation, CustomerSession, CustomerOtp, CustomerAuthThrottle, EmailOtp, EmailThrottle, EmailDispatch, GoogleLoginAttempt, ...administrationModels]) {
+  for (const model of [Product, Subscriber, Category, ProductVariant, Cart, User, Wishlist, Order, Payment, Review, InventoryReservation, StockMovement, CustomerSession, CustomerOtp, CustomerAuthThrottle, EmailOtp, EmailThrottle, EmailDispatch, GoogleLoginAttempt, ...administrationModels]) {
     await model.createCollection();
     await model.createIndexes();
   }

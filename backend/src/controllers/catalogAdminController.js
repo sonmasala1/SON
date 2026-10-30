@@ -70,6 +70,9 @@ export const productInput = productInputFields.superRefine((product, context) =>
   if (product.status === 'published' && !product.hindiDescription) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['hindiDescription'], message: 'Published products require a Hindi description.' });
   }
+  if (product.status === 'published' && (!product.variants.length || product.variants.some((variant) => variant.price == null || variant.price <= 0 || variant.mrp == null || variant.mrp <= 0 || !variant.sku || !variant.weightGrams))) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['variants'], message: 'Published products require priced packs with SKU, weight, and MRP.' });
+  }
   if (product.origin && (product.originVerificationStatus !== 'verified' || !product.originVerificationSource)) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['origin'], message: 'Origin claims require a verified source.' });
   }

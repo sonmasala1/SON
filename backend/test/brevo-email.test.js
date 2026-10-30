@@ -8,7 +8,7 @@ const code = () => String(randomInt(1000000)).padStart(6, '0');
 function fixture(request) {
   const logs = [], calls = [];
   const req = { method: 'POST', originalUrl: '/api/v1/auth/email/send-otp', app: { locals: { config: {
-    nodeEnv: 'test', emailProvider: 'brevo', brevoApiKey: 'test-only-api-key', brevoSenderEmail: 'verified@example.com', brevoSenderName: 'SON MASALA',
+    nodeEnv: 'test', emailProvider: 'brevo', brevoApiKey: 'xkeysib-test-only-api-key', brevoSenderEmail: 'verified@example.com', brevoSenderName: 'SON MASALA',
     testLogSink: record => logs.push(record),
     brevoFetch: async (...args) => { calls.push(args); return request(...args); },
   } } } };
@@ -24,7 +24,7 @@ test('Brevo sends one branded email by HTTPS with provider idempotency and priva
   assert.equal(url, BREVO_EMAIL_URL);
   assert.equal(options.method, 'POST');
   assert.equal(options.redirect, 'error');
-  assert.equal(options.headers['api-key'], 'test-only-api-key');
+  assert.equal(options.headers['api-key'], 'xkeysib-test-only-api-key');
   assert.ok(options.signal instanceof AbortSignal);
   assert.deepEqual(body.sender, { email: 'verified@example.com', name: 'SON MASALA' });
   assert.deepEqual(body.to, [{ email: 'private-customer@example.com' }]);
@@ -35,10 +35,10 @@ test('Brevo sends one branded email by HTTPS with provider idempotency and priva
   assert.match(body.textContent, /Do not share/);
   assert.deepEqual(logs.map(record => record.event), ['email.api.request', 'email.api.accepted']);
   assert.equal(logs.at(-1).status, 201);
-  assert.doesNotMatch(JSON.stringify(logs), /test-only-api-key|private-customer|verified@example|test-message-id|htmlContent|textContent/);
+  assert.doesNotMatch(JSON.stringify(logs), /xkeysib-test-only-api-key|private-customer|verified@example|test-message-id|htmlContent|textContent/);
 });
 
-for (const [status, reason] of [[400, 'brevo_rejected'], [401, 'brevo_authentication'], [403, 'brevo_authentication'], [500, 'brevo_unavailable'], [503, 'brevo_unavailable']]) {
+for (const [status, reason] of [[400, 'brevo_rejected'], [401, 'brevo_authentication'], [403, 'brevo_permission'], [500, 'brevo_unavailable'], [503, 'brevo_unavailable']]) {
   test(`Brevo ${status} is sanitized and never automatically retried`, async () => {
     const { req, calls, logs } = fixture(async () => new Response(JSON.stringify({ message: 'private-provider-message', apiKey: 'private-secret' }), { status }));
     await assert.rejects(sendOtpEmail(req, { to: 'private-recipient@example.com', code: code() }), error => error.status === 503 && error.logReason === reason && !error.message.includes('private-'));
@@ -47,6 +47,58 @@ for (const [status, reason] of [[400, 'brevo_rejected'], [401, 'brevo_authentica
     assert.doesNotMatch(JSON.stringify(logs), /private-/);
   });
 }
+
+test('Brevo 401 classifies authentication failure with safe error code and never retries', async () => {
+  const { req, calls, logs } = fixture(async () => new Response(JSON.stringify({ code: 'unauthorized', message: 'Key not found' }), { status: 401 }));
+  await assert.rejects(
+    sendOtpEmail(req, { to: 'customer@example.com', code: code() }),
+    error => error.status === 503 && error.logReason === 'brevo_authentication'
+  );
+  assert.equal(calls.length, 1);
+  assert.equal(logs.at(-1).event, 'email.api.failed');
+  assert.equal(logs.at(-1).status, 401);
+  assert.equal(logs.at(-1).providerCode, 'unauthorized');
+  assert.equal(logs.at(-1).reason, 'brevo_authentication');
+});
+
+test('Brevo 403 classifies permission failure with safe error code', async () => {
+  const { req, calls, logs } = fixture(async () => new Response(JSON.stringify({ code: 'permission_denied', message: 'Feature not allowed' }), { status: 403 }));
+  await assert.rejects(
+    sendOtpEmail(req, { to: 'customer@example.com', code: code() }),
+    error => error.status === 503 && error.logReason === 'brevo_permission'
+  );
+  assert.equal(calls.length, 1);
+  assert.equal(logs.at(-1).event, 'email.api.failed');
+  assert.equal(logs.at(-1).status, 403);
+  assert.equal(logs.at(-1).providerCode, 'permission_denied');
+  assert.equal(logs.at(-1).reason, 'brevo_permission');
+});
+
+test('Brevo 400 with unverified sender classifies sender error specifically', async () => {
+  const { req, calls, logs } = fixture(async () => new Response(JSON.stringify({ code: 'invalid_parameter', message: 'Sender email is not verified' }), { status: 400 }));
+  await assert.rejects(
+    sendOtpEmail(req, { to: 'customer@example.com', code: code() }),
+    error => error.status === 503 && error.logReason === 'brevo_sender_invalid'
+  );
+  assert.equal(calls.length, 1);
+  assert.equal(logs.at(-1).event, 'email.api.failed');
+  assert.equal(logs.at(-1).status, 400);
+  assert.equal(logs.at(-1).providerCode, 'invalid_parameter');
+  assert.equal(logs.at(-1).reason, 'brevo_sender_invalid');
+});
+
+test('Brevo SMTP key (xsmtpsib-) is rejected before making any network call', async () => {
+  const { req, calls, logs } = fixture(async () => assert.fail('Must not dispatch HTTPS request with SMTP key'));
+  req.app.locals.config.brevoApiKey = 'xsmtpsib-mock-smtp-relay-key-1234567890';
+  await assert.rejects(
+    sendOtpEmail(req, { to: 'customer@example.com', code: code() }),
+    error => error.status === 503 && error.logReason === 'brevo_authentication' && error.message.includes('Brevo v3 API key')
+  );
+  assert.equal(calls.length, 0);
+  assert.equal(logs.at(-1).event, 'email.api.failed');
+  assert.equal(logs.at(-1).providerCode, 'smtp_key_detected');
+  assert.doesNotMatch(JSON.stringify(logs), /xsmtpsib/);
+});
 
 for (const [headers, wait] of [[{ 'Retry-After': '120' }, 120], [{ 'x-sib-ratelimit-reset': '90' }, 90], [{ 'Retry-After': '2' }, 60], [{}, 60]]) {
   test(`Brevo rate limiting obeys provider headers and at least 60s cooldown (${wait}s)`, async () => {

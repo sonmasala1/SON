@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import Order from '../models/Order.js';
 import { getCart, serializeCart } from '../services/cartService.js';
-import { createDemoOrder, settleDemoOrder, publicOrder, releaseExpiredReservations } from '../services/paymentService.js';
+import { createDemoOrder, createPayLaterOrder, settleDemoOrder, cancelPayLaterOrder, publicOrder, releaseExpiredReservations } from '../services/paymentService.js';
 import { deliveryInput, parse } from '../validators/commerce.js';
 import { httpError } from '../utils/httpError.js';
 
@@ -25,11 +25,26 @@ export async function demoPayment(req, res, next) {
     res.json({ success: true, order: publicOrder(order) });
   } catch (error) { next(error); }
 }
+
+export async function placePayLaterOrder(req, res, next) {
+  try {
+    const input = parse(z.object({ delivery: deliveryInput, requestKey: z.string().uuid() }).strict(), req.body);
+    const order = await createPayLaterOrder(req, input);
+    res.status(201).json({ success: true, order: publicOrder(order) });
+  } catch (error) { next(error); }
+}
+
+export async function cancelCustomerOrder(req, res, next) {
+  try {
+    const order = await cancelPayLaterOrder(req, req.params.id);
+    res.json({ success: true, order: publicOrder(order) });
+  } catch (error) { next(error); }
+}
 export async function showOrder(req, res, next) {
   try {
     await releaseExpiredReservations();
-    const order = await Order.findOne({ publicId: req.params.id, ownerKey: req.ownerKey, isDemo: true, paymentMode: 'DEMO' });
-    if (!order) throw httpError(404, 'Demo order not found.');
+    const order = await Order.findOne({ publicId: req.params.id, ownerKey: req.ownerKey });
+    if (!order) throw httpError(404, 'Order not found.');
     res.set('Cache-Control', 'no-store').json({ success: true, order: publicOrder(order) });
   } catch (error) { next(error); }
 }

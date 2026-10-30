@@ -6,6 +6,26 @@ export const BREVO_EMAIL_URL = 'https://api.brevo.com/v3/smtp/email';
 const emailAddress = value => typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 export const escapeEmailHtml = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 
+export const SAFE_BREVO_CODES = new Set([
+  'unauthorized', 'permission_denied', 'invalid_parameter', 'missing_parameter',
+  'account_under_validation', 'not_enough_credits', 'rate_limited', 'bad_request',
+  'method_not_allowed', 'document_not_found', 'reseller_permission_denied',
+  'smtp_key_detected', 'server_error', 'unknown'
+]);
+
+export function validateBrevoApiKey(key) {
+  if (typeof key !== 'string' || !key.trim() || /[\r\n]/.test(key)) {
+    return { valid: false, reason: 'configuration_missing', providerCode: 'invalid_format' };
+  }
+  if (key.trim().startsWith('xsmtpsib-')) {
+    return { valid: false, reason: 'brevo_authentication', providerCode: 'smtp_key_detected' };
+  }
+  if (!key.trim().startsWith('xkeysib-')) {
+    return { valid: false, reason: 'brevo_authentication', providerCode: 'invalid_api_key_format' };
+  }
+  return { valid: true };
+}
+
 export function otpEmailTemplate(code) {
   if (typeof code !== 'string' || !/^\d{6}$/.test(code)) throw httpError(422, 'A six-digit verification code is required.');
   return {
@@ -35,11 +55,25 @@ function retrySeconds(response) {
 /** One HTTPS dispatch. Never retry an uncertain send or fall back to SMTP. */
 export async function sendTransactionalEmail(req, { to, subject, textContent, htmlContent, dispatchId = randomUUID() }) {
   const config = req.app.locals.config;
-  if (config.emailProvider !== 'brevo' || typeof config.brevoApiKey !== 'string' || !config.brevoApiKey.trim() || /[\r\n]/.test(config.brevoApiKey) || !emailAddress(config.brevoSenderEmail) || typeof config.brevoSenderName !== 'string' || !config.brevoSenderName.trim() || config.brevoSenderName.length > 100 || /[\r\n]/.test(config.brevoSenderName)) {
+  if (config.emailProvider !== 'brevo' || !emailAddress(config.brevoSenderEmail) || typeof config.brevoSenderName !== 'string' || !config.brevoSenderName.trim() || config.brevoSenderName.length > 100 || /[\r\n]/.test(config.brevoSenderName)) {
     req.logFailure = 'configuration_missing';
     logEvent('ERROR', 'email.api.failed', { source: 'BREVO', reason: 'configuration_missing' }, req);
     throw httpError(503, 'Email delivery is not configured. Please contact support.');
   }
+
+  const keyCheck = validateBrevoApiKey(config.brevoApiKey);
+  if (!keyCheck.valid) {
+    req.logFailure = keyCheck.reason;
+    logEvent('ERROR', 'email.api.failed', { source: 'BREVO', reason: keyCheck.reason, providerCode: keyCheck.providerCode }, req);
+    if (keyCheck.providerCode === 'smtp_key_detected') {
+      throw Object.assign(
+        httpError(503, 'Email delivery is not configured correctly. A Brevo v3 API key (xkeysib-...) is required, not an SMTP key.'),
+        { logReason: 'brevo_authentication', providerCode: 'smtp_key_detected' }
+      );
+    }
+    throw httpError(503, 'Email delivery is not configured. Please contact support.');
+  }
+
   if (!emailAddress(to)) throw httpError(422, 'Enter a valid email address.');
   if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(dispatchId)) throw httpError(422, 'Invalid email dispatch identifier.');
   const request = config.nodeEnv === 'test' && config.brevoFetch ? config.brevoFetch : fetch;
@@ -52,16 +86,83 @@ export async function sendTransactionalEmail(req, { to, subject, textContent, ht
       headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'api-key': config.brevoApiKey },
       body: JSON.stringify({ sender: { email: config.brevoSenderEmail, name: config.brevoSenderName }, to: [{ email: to }], subject, textContent, htmlContent, headers: { idempotencyKey: dispatchId } }),
     });
-    if (response.status === 429) throw Object.assign(httpError(429, 'Email service is busy. Please wait before requesting a new code.'), { retryAfter: retrySeconds(response), logReason: 'brevo_rate_limited' });
-    if ([401, 403].includes(response.status)) throw Object.assign(httpError(503, 'Email delivery is not configured correctly. Please contact support.'), { logReason: 'brevo_authentication' });
-    if (response.status !== 201) throw Object.assign(httpError(503, 'Email delivery is unavailable. Please try again later.'), { logReason: response.status >= 500 ? 'brevo_unavailable' : 'brevo_rejected' });
-    const accepted = await response.json();
-    if (typeof accepted?.messageId !== 'string' || !accepted.messageId.length || accepted.messageId.length > 512) throw Object.assign(httpError(503, 'Email delivery could not be confirmed. Please wait before requesting a new code.'), { logReason: 'brevo_response_invalid' });
-    logEvent('INFO', 'email.api.accepted', { source: 'BREVO', status: response.status, durationMs: Math.round(performance.now() - started) }, req);
-    return 'BREVO';
+
+    if (response.status === 201) {
+      const accepted = await response.json().catch(() => null);
+      if (typeof accepted?.messageId !== 'string' || !accepted.messageId.length || accepted.messageId.length > 512) {
+        throw Object.assign(httpError(503, 'Email delivery could not be confirmed. Please wait before requesting a new code.'), { logReason: 'brevo_response_invalid' });
+      }
+      logEvent('INFO', 'email.api.accepted', { source: 'BREVO', status: response.status, durationMs: Math.round(performance.now() - started) }, req);
+      return 'BREVO';
+    }
+
+    // Inspect Brevo error response body safely (never log raw secrets or user emails)
+    let errorData = null;
+    try {
+      errorData = await response.json();
+    } catch {
+      // Non-JSON response body
+    }
+
+    const rawCode = typeof errorData?.code === 'string' ? errorData.code.toLowerCase().trim() : '';
+    const rawMessage = typeof errorData?.message === 'string' ? errorData.message : '';
+    const providerCode = SAFE_BREVO_CODES.has(rawCode)
+      ? rawCode
+      : (response.status === 401 ? 'unauthorized' : response.status === 403 ? 'permission_denied' : response.status === 429 ? 'rate_limited' : response.status >= 500 ? 'server_error' : 'unknown');
+
+    if (response.status === 429) {
+      throw Object.assign(
+        httpError(429, 'Email service is busy. Please wait before requesting a new code.'),
+        { retryAfter: retrySeconds(response), logReason: 'brevo_rate_limited', providerCode }
+      );
+    }
+
+    if (response.status === 401) {
+      throw Object.assign(
+        httpError(503, 'Email delivery is not configured correctly. Please contact support.'),
+        { logReason: 'brevo_authentication', providerCode }
+      );
+    }
+
+    if (response.status === 403) {
+      if (/ip|address|network|whitelist/i.test(rawMessage)) {
+        throw Object.assign(
+          httpError(503, 'Email delivery is blocked by the Brevo network allowlist. Please contact support.'),
+          { logReason: 'brevo_ip_restricted', providerCode }
+        );
+      }
+      throw Object.assign(
+        httpError(503, 'Email delivery is not authorized. Please contact support.'),
+        { logReason: 'brevo_permission', providerCode }
+      );
+    }
+
+    if (response.status === 400) {
+      const isSender = /sender/i.test(rawMessage);
+      throw Object.assign(
+        httpError(503, isSender ? 'Email sender is not verified. Please contact support.' : 'Email delivery is unavailable. Please try again later.'),
+        { logReason: isSender ? 'brevo_sender_invalid' : 'brevo_rejected', providerCode }
+      );
+    }
+
+    throw Object.assign(
+      httpError(503, 'Email delivery is unavailable. Please try again later.'),
+      { logReason: response.status >= 500 ? 'brevo_unavailable' : 'brevo_rejected', providerCode }
+    );
   } catch (error) {
     req.logFailure = error.logReason || (['TimeoutError', 'AbortError'].includes(error.name) ? 'brevo_timeout' : 'brevo_unavailable');
-    logEvent(error.status === 429 ? 'WARN' : 'ERROR', 'email.api.failed', { source: 'BREVO', reason: req.logFailure, status: response?.status, durationMs: Math.round(performance.now() - started) }, req);
+    logEvent(
+      error.status === 429 ? 'WARN' : 'ERROR',
+      'email.api.failed',
+      {
+        source: 'BREVO',
+        reason: req.logFailure,
+        status: response?.status,
+        providerCode: error.providerCode,
+        durationMs: Math.round(performance.now() - started)
+      },
+      req
+    );
     if (error.expose) throw error;
     throw Object.assign(httpError(503, 'Email delivery could not be confirmed. Please wait before requesting a new code.'), { logReason: req.logFailure });
   }

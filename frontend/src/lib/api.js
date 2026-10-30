@@ -12,7 +12,19 @@ export class ApiError extends Error {
   constructor(message, status = 0, requestId) { super(message); this.name = 'ApiError'; this.status = status; this.requestId = requestId; }
 }
 
-export async function apiRequest(endpoint, { timeout = 10000, signal, ...options } = {}) {
+const inFlightGets = new Map();
+
+export function apiRequest(endpoint, requestOptions = {}) {
+  const method = String(requestOptions.method || 'GET').toUpperCase();
+  if (method !== 'GET' || requestOptions.signal?.aborted) return apiRequestNow(endpoint, requestOptions);
+  const key = `${apiUrl(endpoint)}|${requestOptions.headers?.['X-CSRF-Token'] || ''}`;
+  if (inFlightGets.has(key)) return inFlightGets.get(key);
+  const request = apiRequestNow(endpoint, requestOptions).finally(() => inFlightGets.delete(key));
+  inFlightGets.set(key, request);
+  return request;
+}
+
+async function apiRequestNow(endpoint, { timeout = 10000, signal, ...options } = {}) {
   const requestId = crypto.randomUUID();
   const controller = new AbortController();
   const abort = () => controller.abort();
@@ -58,6 +70,7 @@ export const updateCartItem = (id, quantity) => apiRequest(`cart/items/${id}`, {
 export const removeCartItem = id => apiRequest(`cart/items/${id}`, { method: 'DELETE' });
 export const authRequest = (action, data = {}) => apiRequest(`auth/${action}`, { method: 'POST', body: JSON.stringify(data) });
 export const previewCheckout = delivery => apiRequest('checkout/preview', { method: 'POST', body: JSON.stringify(delivery ? { delivery } : {}) });
+export const placePayLaterOrder = data => apiRequest('checkout/place', { method: 'POST', body: JSON.stringify(data), timeout: 20000 });
 export const demoPayment = data => apiRequest('demo-payments', { method: 'POST', body: JSON.stringify(data), timeout: 20000 });
 export const getOrder = id => apiRequest(`orders/${encodeURIComponent(id)}`);
 export const getReviews = productId => apiRequest(`reviews${productId ? `?productId=${productId}` : ''}`);
