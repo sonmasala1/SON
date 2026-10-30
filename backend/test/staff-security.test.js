@@ -24,8 +24,8 @@ test('owner/staff MFA, session separation, invitations, permissions, and recover
   await mongoose.connect(testUri, { dbName: databaseName });
   t.after(async () => { if (mongoose.connection.name === databaseName && databaseName.startsWith('son_masala_test_security_')) await mongoose.connection.dropDatabase(); await mongoose.disconnect(); });
   await initializeModels(); await seedDemo();
-  let now = Date.now(); const mails = [];
-  const config = { nodeEnv: 'test', demoEnabled: true, mfaEncryptionKey: randomBytes(32).toString('base64'), clock: () => now, deliveryAdapter: async message => mails.push(message) };
+  let now = Date.now(); const mails = [], logs = [];
+  const config = { nodeEnv: 'test', testLogSink: record => logs.push(record), demoEnabled: true, mfaEncryptionKey: randomBytes(32).toString('base64'), clock: () => now, deliveryAdapter: async message => mails.push(message) };
   const req = { ip: '127.0.0.1', get: () => 'isolated-security-test', app: { locals: { config } } };
   const setupSecret = randomToken();
   const proof = { expectedOsUser: 'verified-deployment-operator', actualOsUser: 'verified-deployment-operator', secretHash: digest(setupSecret), suppliedSecret: setupSecret };
@@ -89,6 +89,26 @@ test('owner/staff MFA, session separation, invitations, permissions, and recover
     assert.equal((await incomplete('/admin/auth/login', { adminId: owner.adminId, password })).status, 401);
     const result = await signIn(ownerClient, 'owner', owner, ownerSecret);
     assert.ok(result.headers.getSetCookie().some(cookie => cookie.includes('HttpOnly') && cookie.includes('SameSite=Strict')));
+  });
+  await t.test('development password fallbacks and configured fixed MFA codes never grant access', async () => {
+    const client = actor();
+    for (const fallback of ['123456', 'As@singh8']) {
+      assert.equal((await client('/owner/auth/login', { adminId: owner.adminId, password: fallback })).status, 401);
+    }
+    now += 31000;
+    const previous = process.env.ADMIN_MFA_CODE;
+    // Select a fixed value that cannot be a legitimate TOTP within the acceptance window.
+    const valid = new Set([-30000, 0, 30000].map(offset => totp(ownerSecret).generate({ timestamp: now + offset })));
+    const fixed = ['123456', '234567', '345678', '456789'].find(code => !valid.has(code));
+    process.env.ADMIN_MFA_CODE = fixed;
+    try {
+      const begin = await client('/owner/auth/login', { adminId: owner.adminId, password });
+      assert.equal(begin.status, 200);
+      assert.equal((await client('/owner/auth/mfa/verify', { challengeToken: begin.body.challengeToken, code: fixed })).status, 401);
+    } finally {
+      if (previous === undefined) delete process.env.ADMIN_MFA_CODE; else process.env.ADMIN_MFA_CODE = previous;
+    }
+    await AdminAccount.updateOne({ _id: owner._id }, { failedLoginAttempts: 0, $unset: { lockedUntil: '' } });
   });
   await t.test('MFA challenges and codes are single use and realm-bound', async () => {
     now += 31000;
@@ -227,7 +247,7 @@ test('owner/staff MFA, session separation, invitations, permissions, and recover
     assert.equal(await AdminSession.countDocuments(), before);
   });
   await t.test('production refuses development verification and uses secure separate session cookies', async () => {
-    const production = createApp({ config: { ...config, nodeEnv: 'production', authDevPreview: true, deliveryAdapter: null, smtpHost: null, twilioSid: null } }).listen(0, '127.0.0.1');
+    const production = createApp({ config: { ...config, nodeEnv: 'production', authDevPreview: true, deliveryAdapter: null, brevoApiKey: null, twilioSid: null } }).listen(0, '127.0.0.1');
     await new Promise(resolve => production.once('listening', resolve));
     try {
       const url = `http://127.0.0.1:${production.address().port}/api/v1`;
@@ -246,5 +266,12 @@ test('owner/staff MFA, session separation, invitations, permissions, and recover
       for (let attempt = 0; attempt < 9; attempt++) limited = await post('/owner/auth/login', { adminId: 'UNKNOWN-OWNER', password });
       assert.equal(limited.status, 429);
     } finally { await new Promise(resolve => production.close(resolve)); }
+  });
+  await t.test('staff authentication, MFA and CSRF failures are logged without credentials', () => {
+    assert.ok(logs.some(record => record.reason === 'credentials_or_account_unavailable'));
+    assert.ok(logs.some(record => record.reason === 'mfa_invalid_or_replayed'));
+    assert.ok(logs.some(record => record.reason === 'csrf_token_rejected'));
+    assert.ok(logs.some(record => record.operation === 'owner.mfa.verify' && record.status === 200));
+    for (const secret of [password, ownerSecret, setupSecret, 'owner@example.com', 'challengeToken', 'csrfToken']) assert.ok(!JSON.stringify(logs).includes(secret));
   });
 });

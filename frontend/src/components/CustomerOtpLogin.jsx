@@ -19,7 +19,7 @@ export default function CustomerOtpLogin() {
   const destination = customerReturnPath(search.get('next') || search.get('returnTo'));
 
   // login mode: 'mobile' | 'email'
-  const [mode, setMode] = useState('mobile');
+  const [mode, setMode] = useState('email');
 
   // --- mobile OTP state ---
   const [fullName, setFullName]   = useState('');
@@ -28,6 +28,9 @@ export default function CustomerOtpLogin() {
   const [mobileChallenge, setMobileChallenge] = useState(null);
 
   // --- email OTP state ---
+  const [registering, setRegistering] = useState(true);
+  const [emailMobile, setEmailMobile] = useState('');
+  const [needsProfile, setNeedsProfile] = useState(false);
   const [emailName, setEmailName]         = useState('');
   const [email, setEmail]                 = useState('');
   const [emailChallenge, setEmailChallenge] = useState(null);
@@ -37,9 +40,13 @@ export default function CustomerOtpLogin() {
 
   const [busy, setBusy]           = useState('');
   const [error, setError]         = useState('');
+  const [supportId, setSupportId] = useState('');
   const [now, setNow]             = useState(Date.now());
   const [retryUntil, setRetryUntil] = useState(0);
   const inputs = useRef([]);
+  const inFlight = useRef(false);
+  const completed = useRef(false);
+  const emailAction = useRef(null);
   const code = digits.join('');
 
   // Determine which challenge is active
@@ -52,73 +59,100 @@ export default function CustomerOtpLogin() {
   useEffect(() => { if (!loading && user) router.replace(destination); }, [loading, user, router, destination]);
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
   useEffect(() => { if (challenge) inputs.current[0]?.focus(); }, [challenge]);
-  useEffect(() => { const message = googleLoginError(search.get('google_error')); if (message) setError(message); }, [search]);
+  useEffect(() => { const message = googleLoginError(search.get('google_error')); if (message) { setError(message); const id = search.get('request_id'); if (/^[a-f0-9-]{36}$/i.test(id || '')) setSupportId(id); } }, [search]);
 
   function report(err) {
+    setSupportId(err.requestId || '');
+    if (err.requiresProfile) setNeedsProfile(true);
     setError(err.message.replace(/^HTTP \d+: /, ''));
     if (err.retryAfter) setRetryUntil(Date.now() + err.retryAfter * 1000);
   }
 
   function acceptChallenge(result, isEmail = false) {
-    if (result.authenticated) { refreshCart().then(() => router.replace(destination)); return; }
+    if (result.authenticated) { void finishLogin(); return; }
     const obj = { ...result, clockOffset: Date.parse(result.serverTime) - Date.now() };
-    if (isEmail) { setEmailChallenge(obj); } else { setMobileChallenge(obj); }
+    if (isEmail) { setEmailChallenge(obj); setNeedsProfile(false); } else { setMobileChallenge(obj); }
     setDigits(Array(6).fill('')); setNow(Date.now()); setRetryUntil(0);
+  }
+
+  async function finishLogin() {
+    completed.current = true;
+    try { await refreshCart(); } finally { router.replace(destination); }
+  }
+
+  async function dispatchEmail(endpoint, payload) {
+    const fingerprint = JSON.stringify([endpoint, payload]);
+    if (emailAction.current?.fingerprint !== fingerprint) {
+      emailAction.current = { fingerprint, key: crypto.randomUUID() };
+    }
+    try {
+      const result = await apiRequest(endpoint, { method: 'POST', timeout: 30000,
+        headers: { 'Idempotency-Key': emailAction.current.key }, body: JSON.stringify(payload) });
+      emailAction.current = null;
+      return result;
+    } catch (err) {
+      // A timeout or in-progress response must retry the same action key.
+      if (err.status && (err.status !== 409 || !err.retryAfter)) emailAction.current = null;
+      throw err;
+    }
   }
 
   // ---- mobile submit -------------------------------------------------------
   async function submitMobile(event) {
-    event.preventDefault(); if (busy) return; setError('');
+    event.preventDefault(); if (busy || inFlight.current || completed.current) return; setError('');
     if (!mobileChallenge) {
       if (!validName(fullName) || !validMobile(mobile)) return;
-      setBusy('send');
+      inFlight.current = true; setBusy('send');
       try {
         acceptChallenge(await apiRequest('auth/send-otp', { method: 'POST', timeout: 20000, body: JSON.stringify({ fullName: normalizeName(fullName), phone: `+91${mobile}`, channel }) }), false);
-      } catch (err) { report(err); } finally { setBusy(''); }
+      } catch (err) { report(err); } finally { inFlight.current = false; setBusy(''); }
     } else {
       if (code.length !== 6 || !expires) return;
-      setBusy('verify');
+      inFlight.current = true; setBusy('verify');
       try {
         await apiRequest('auth/verify-otp', { method: 'POST', timeout: 20000, body: JSON.stringify({ challengeToken: mobileChallenge.challengeToken, code }) });
-        setDigits(Array(6).fill('')); await refreshCart(); router.replace(destination);
-      } catch (err) { report(err); } finally { setBusy(''); }
+        setDigits(Array(6).fill('')); await finishLogin();
+      } catch (err) { report(err); } finally { inFlight.current = false; setBusy(''); }
     }
   }
 
   async function resendMobile() {
-    if (busy || resendWait > 0) return; setBusy('resend'); setError('');
+    if (busy || inFlight.current || completed.current || resendWait > 0) return; inFlight.current = true; setBusy('resend'); setError('');
     try { acceptChallenge(await apiRequest('auth/resend-otp', { method: 'POST', timeout: 20000, body: JSON.stringify({ challengeToken: mobileChallenge.challengeToken }) }), false); }
-    catch (err) { report(err); } finally { setBusy(''); }
+    catch (err) { report(err); } finally { inFlight.current = false; setBusy(''); }
   }
 
   // ---- email submit --------------------------------------------------------
   async function submitEmail(event) {
-    event.preventDefault(); if (busy) return; setError('');
+    event.preventDefault(); if (busy || inFlight.current || completed.current) return; setError('');
     if (!emailChallenge) {
-      if (!validName(emailName) || !validEmail(email)) return;
-      setBusy('send');
+      if (retryUntil > Date.now()) return;
+      if (!validEmail(email) || (registering && (!validName(emailName) || !validMobile(emailMobile)))) {
+        setError('Enter a valid email address, full name, and 10-digit Indian mobile number.'); return;
+      }
+      inFlight.current = true; setBusy('send');
       try {
-        acceptChallenge(await apiRequest('auth/email/send-otp', { method: 'POST', timeout: 30000, body: JSON.stringify({ fullName: normalizeName(emailName), email: email.trim().toLowerCase() }) }), true);
-      } catch (err) { report(err); } finally { setBusy(''); }
+        acceptChallenge(await dispatchEmail('auth/email/send-otp', { email: email.trim().toLowerCase(), ...(registering ? { fullName: normalizeName(emailName), phone: `+91${emailMobile}` } : {}) }), true);
+      } catch (err) { report(err); } finally { inFlight.current = false; setBusy(''); }
     } else {
       if (code.length !== 6 || !expires) return;
-      setBusy('verify');
+      inFlight.current = true; setBusy('verify');
       try {
-        await apiRequest('auth/email/verify-otp', { method: 'POST', timeout: 20000, body: JSON.stringify({ challengeToken: emailChallenge.challengeToken, code }) });
-        setDigits(Array(6).fill('')); await refreshCart(); router.replace(destination);
-      } catch (err) { report(err); } finally { setBusy(''); }
+        await apiRequest('auth/email/verify-otp', { method: 'POST', timeout: 20000, body: JSON.stringify({ challengeToken: emailChallenge.challengeToken, code, ...(needsProfile ? { fullName: normalizeName(emailName), phone: `+91${emailMobile}` } : {}) }) });
+        setDigits(Array(6).fill('')); await finishLogin();
+      } catch (err) { report(err); } finally { inFlight.current = false; setBusy(''); }
     }
   }
 
   async function resendEmail() {
-    if (busy || resendWait > 0) return; setBusy('resend'); setError('');
-    try { acceptChallenge(await apiRequest('auth/email/resend-otp', { method: 'POST', timeout: 30000, body: JSON.stringify({ challengeToken: emailChallenge.challengeToken }) }), true); }
-    catch (err) { report(err); } finally { setBusy(''); }
+    if (busy || inFlight.current || completed.current || resendWait > 0) return; inFlight.current = true; setBusy('resend'); setError('');
+    try { acceptChallenge(await dispatchEmail('auth/email/resend-otp', { challengeToken: emailChallenge.challengeToken }), true); }
+    catch (err) { report(err); } finally { inFlight.current = false; setBusy(''); }
   }
 
   // ---- switch mode (reset challenge + errors) ------------------------------
   function switchMode(next) {
-    if (busy) return;
+    if (busy || inFlight.current || completed.current) return;
     setMode(next); setError(''); setDigits(Array(6).fill('')); setRetryUntil(0);
   }
 
@@ -133,14 +167,14 @@ export default function CustomerOtpLogin() {
 
   // ---- Google login --------------------------------------------------------
   async function continueWithGoogle() {
-    if (busy) return; setBusy('google'); setError('');
+    if (busy || inFlight.current || completed.current) return; inFlight.current = true; setBusy('google'); setError('');
     try {
       const result = await apiRequest('auth/google/start', { method: 'POST', body: JSON.stringify({ returnTo: destination }) });
-      if (result.authenticated) { await refreshCart(); router.replace(destination); return; }
+      if (result.authenticated) { await finishLogin(); return; }
       const authorization = new URL(result.authorizationUrl);
-      if (authorization.protocol !== 'https:' || authorization.origin !== 'https://accounts.google.com') throw new Error('Google sign-in is currently unavailable. Please use mobile OTP.');
+      if (authorization.protocol !== 'https:' || authorization.origin !== 'https://accounts.google.com') throw new Error('Google sign-in is currently unavailable. Please use email OTP.');
       window.location.assign(authorization.toString());
-    } catch (err) { report(err); setBusy(''); }
+    } catch (err) { report(err); inFlight.current = false; setBusy(''); }
   }
 
   // ---- render --------------------------------------------------------------
@@ -150,11 +184,9 @@ export default function CustomerOtpLogin() {
 
   const activeChallenge   = challenge;
   const isEmailMode       = mode === 'email';
-  const submitHandler     = isEmailMode ? submitEmail : submitMobile;
-  const resendHandler     = isEmailMode ? resendEmail : resendMobile;
 
   // OTP step heading / description
-  const otpHeading = isEmailMode ? <>Verify Your<br />Email Address</> : <>Verify Your<br />Mobile Number</>;
+  const otpHeading = isEmailMode ? <><Text>Verify Your</Text><br /><Text>Email Address</Text></> : <><Text>Verify Your</Text><br /><Text>Mobile Number</Text></>;
   const otpDesc    = isEmailMode
     ? <><Text>{'Enter the 6-digit code sent to '}</Text><strong>{activeChallenge?.email}</strong></>
     : <><Text>{'Enter the 6-digit verification code '}</Text><Text>{activeChallenge?.developmentCode ? 'for' : 'sent to'}</Text><br /><strong>+91 <Text>{activeChallenge?.phone?.slice(3, 8)}</Text> <Text>{activeChallenge?.phone?.slice(8)}</Text></strong></>;
@@ -162,15 +194,32 @@ export default function CustomerOtpLogin() {
   const channelLabel = isEmailMode ? 'Email' : (challenge?.channel === 'sms' ? 'SMS' : 'WhatsApp');
 
   return (
-    <><div className="customer-auth-stage"><section className="customer-auth-card" aria-labelledby="customer-auth-heading" aria-busy={Boolean(busy)}>
+    <><div className="customer-auth-stage">
+      <aside className="customer-auth-story" aria-label="Discover SON MASALA">
+        <div className="customer-story-brand"><Brand /></div>
+        <div className="customer-story-copy">
+          <p className="customer-story-eyebrow"><Text>ROOTED IN TRADITION. CRAFTED WITH LOVE.</Text></p>
+          <h2><Text>A little spice.</Text><br /><em><Text>A lot of soul.</Text></em></h2>
+          <p><Text>Bring home the warmth of authentic Indian spices. Pure ingredients, rich aromas, and a taste that feels like home.</Text></p>
+        </div>
+        <div className="customer-story-image"><Image src="/images/spices.jpg" alt="A colourful selection of Indian spices, chillies, cinnamon and fresh herbs" fill priority sizes="(max-width: 760px) 100vw, 50vw" /></div>
+        <div className="customer-story-features">
+          {[['leaf', 'Pure ingredients'], ['spark', 'Authentic flavours'], ['heart', 'Made with care']].map(([icon, label]) => <div key={icon}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">{icon === 'leaf' ? <><path d="M20 4C9 2 3 7 5 14s15 7 15-10Z"/><path d="M4 21 16 9"/></> : icon === 'heart' ? <path d="M12 21 3.5 12.5C-3 5 8 0 12 7c4-7 15-2 8.5 5.5Z"/> : <><path d="m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3Z"/></>}</svg><span><Text>{label}</Text></span></div>)}
+        </div>
+        <p className="customer-story-tagline" lang="hi">हर स्वाद में अपनापन</p>
+      </aside>
+      <div className="customer-auth-form-side"><section className="customer-auth-card" aria-labelledby="customer-auth-heading" aria-busy={Boolean(busy)}>
       <div className="customer-auth-brand"><Brand /></div>
 
+      {!activeChallenge && isEmailMode && <div className="customer-auth-tabs" role="tablist" aria-label="Customer authentication">
+        {[true, false].map(create => <button key={String(create)} type="button" id={create ? 'create-account-tab' : 'login-tab'} role="tab" aria-selected={registering === create} aria-controls="customer-email-panel" tabIndex={registering === create ? 0 : -1} disabled={Boolean(busy)} onClick={() => { setRegistering(create); setError(''); }} onKeyDown={event => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) { event.preventDefault(); const next = event.key === 'Home' ? true : event.key === 'End' ? false : !create; setRegistering(next); setError(''); document.getElementById(next ? 'create-account-tab' : 'login-tab')?.focus(); } }}><Text>{create ? 'Create Account' : 'Login'}</Text></button>)}
+      </div>}
       {/* Heading */}
       <div className="customer-auth-intro" key={activeChallenge ? `verify-${mode}` : `welcome-${mode}`}>
         <h1 id="customer-auth-heading" tabIndex={-1}>
-          <Text>{activeChallenge ? otpHeading : <><Text>{'Welcome to'}</Text><br /><Text>{'SON MASALA'}</Text></>}</Text>
+          <Text>{activeChallenge ? otpHeading : registering && isEmailMode ? 'Create your account' : 'Welcome back'}</Text>
         </h1>
-        <p><Text>{activeChallenge ? otpDesc : 'Sign in or join us to explore authentic Indian spices'}</Text></p>
+        <p><Text>{activeChallenge ? otpDesc : registering && isEmailMode ? 'Join the SON MASALA family. Good taste starts here.' : 'Your favourite flavours are just a sign-in away.'}</Text></p>
       </div>
 
       {/* ===================== MOBILE OTP FORM ======================== */}
@@ -238,12 +287,18 @@ export default function CustomerOtpLogin() {
 
       {/* ===================== EMAIL OTP FORM ========================= */}
       {mode === 'email' && (
-        <form className="customer-auth-form" onSubmit={submitEmail}>
-          {!emailChallenge ? (<>
+        <form id="customer-email-panel" role="tabpanel" aria-labelledby={!emailChallenge ? registering ? 'create-account-tab' : 'login-tab' : 'customer-auth-heading'} className="customer-auth-form" onSubmit={submitEmail}>
+          {((!emailChallenge && registering) || (emailChallenge && needsProfile)) && <>
             <div className="customer-auth-field">
               <label htmlFor="email-full-name"><Text>{'FULL NAME'}</Text></label>
               <LocalizedAttrs><input id="email-full-name" name="fullName" value={emailName} onChange={e => setEmailName(e.target.value)} onBlur={() => setEmailName(normalizeName(emailName))} autoComplete="name" placeholder="Enter your full name" minLength={2} maxLength={100} required disabled={Boolean(busy)} /></LocalizedAttrs>
             </div>
+            <div className="customer-auth-field">
+              <label htmlFor="email-mobile"><Text>{'MOBILE NUMBER'}</Text></label>
+              <div className="customer-mobile-field"><span aria-hidden="true">+91</span><input id="email-mobile" placeholder="Enter 10-digit mobile number" type="tel" autoComplete="tel-national" inputMode="numeric" value={emailMobile} onChange={e => setEmailMobile(mobileDigits(e.target.value))} pattern="[6-9][0-9]{9}" required disabled={Boolean(busy)} /></div>
+            </div>
+          </>}
+          {!emailChallenge ? (<>
             <div className="customer-auth-field">
               <label htmlFor="customer-email"><Text>{'EMAIL ADDRESS'}</Text></label>
               <LocalizedAttrs><input id="customer-email" name="email" type="email" inputMode="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email address" maxLength={254} required disabled={Boolean(busy)} /></LocalizedAttrs>
@@ -279,7 +334,7 @@ export default function CustomerOtpLogin() {
           </>)}
 
           <Text error>{(error || (emailChallenge && !expires)) && <p className="customer-auth-error" role="alert"><Text error>{error || 'Your verification code has expired. Please request a new code.'}</Text></p>}</Text>
-          <button className="customer-auth-primary" type="submit" disabled={Boolean(busy) || (emailChallenge ? code.length !== 6 || !expires : !validName(emailName) || !validEmail(email) || retryUntil > now)}>
+          <button className="customer-auth-primary" type="submit" disabled={Boolean(busy) || (emailChallenge ? code.length !== 6 || !expires || (needsProfile && (!validName(emailName) || !validMobile(emailMobile))) : !validEmail(email) || (registering && (!validName(emailName) || !validMobile(emailMobile))) || retryUntil > now)}>
             <Text>{['send', 'verify'].includes(busy) && <span className="customer-auth-spinner" aria-hidden="true" />}</Text>
             <Text>{busy === 'send' ? 'Sending code…' : busy === 'verify' ? 'Verifying…' : emailChallenge ? 'Verify & Continue' : 'Send OTP to Email'}</Text>
           </button>
@@ -303,8 +358,14 @@ export default function CustomerOtpLogin() {
 
       {/* ===================== OR DIVIDERS + ALTERNATE METHODS ======= */}
       {!activeChallenge && (<>
-        {/* Switch between mobile / email */}
+        {/* Google */}
         <div className="customer-auth-divider"><span><Text>{'OR'}</Text></span></div>
+        <button className="customer-google-button" type="button" disabled={Boolean(busy)} onClick={continueWithGoogle}>
+          <LocalizedAttrs><Image src="/images/google-g.svg" width={20} height={20} alt="" aria-hidden="true" /></LocalizedAttrs>
+          <span><Text>{busy === 'google' ? 'Connecting to Google…' : 'Continue with Google'}</Text></span>
+        </button>
+
+        {/* Switch between mobile / email */}
         {mode === 'mobile' ? (
           <button className="customer-email-button" type="button" disabled={Boolean(busy)} onClick={() => switchMode('email')}>
             <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>
@@ -317,12 +378,6 @@ export default function CustomerOtpLogin() {
           </button>
         )}
 
-        {/* Google */}
-        <div className="customer-auth-divider"><span><Text>{'OR'}</Text></span></div>
-        <button className="customer-google-button" type="button" disabled={Boolean(busy)} onClick={continueWithGoogle}>
-          <LocalizedAttrs><Image src="/images/google-g.svg" width={20} height={20} alt="" aria-hidden="true" /></LocalizedAttrs>
-          <span><Text>{busy === 'google' ? 'Connecting to Google…' : 'Continue with Google'}</Text></span>
-        </button>
 
         <p className="customer-auth-terms">
           <Text>{'By continuing, you agree to our'}</Text><br />
@@ -330,6 +385,7 @@ export default function CustomerOtpLogin() {
         </p>
       </>)}
 
+      {error && supportId && <p className="auth-support-reference"><Text>Support reference</Text>: <code>{supportId}</code></p>}
       {/* Dev preview banner */}
       <Text>{activeChallenge?.developmentCode && (
         <aside className="customer-development-preview">
@@ -338,7 +394,7 @@ export default function CustomerOtpLogin() {
         </aside>
       )}</Text>
 
-    </section></div>
+    </section></div></div>
     <p className="customer-auth-footer">
       <LocalizedAttrs><span lang="hi"><Text>{'हर स्वाद में अपनापन'}</Text></span></LocalizedAttrs>
       <span>© <Text>{new Date().getFullYear()}</Text><Text>{' SON MASALA'}</Text></span>

@@ -46,6 +46,6 @@ test('shared configured login IDs resolve by realm and still require an MFA chal
   }
   assert.equal(queries[0].role, 'OWNER');
   assert.deepEqual(queries[1].role, { $ne: 'OWNER' });
-  assert.deepEqual(queries[0].$or[1], { loginId: 'SHARED-ID', verificationSource: 'ENVIRONMENT_CONFIG' });
+  assert.deepEqual(queries[0].$or[1], { loginId: 'SHARED-ID' });
   assert.deepEqual(challenges.map(challenge => [challenge.realm, challenge.accountId]), [['owner', 'owner-record'], ['admin', 'admin-record']]);
 });

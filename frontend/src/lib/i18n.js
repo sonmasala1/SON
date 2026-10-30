@@ -5,7 +5,7 @@ const normalized = new Map(Object.entries(messages).map(([key, value]) => [key.t
 const patterns = [
   [/^Shopping cart, (\d+) items$/, count => `शॉपिंग कार्ट, ${count} उत्पाद`],
   [/^Wishlist, (\d+) items$/, count => `पसंदीदा सूची, ${count} उत्पाद`],
-  [/^Verification code digit (\d+)$/, digit => `सत्यापन कोड का अंक ${digit}`],
+  [/^(?:Email verification|Verification) code digit (\d+)$/, digit => `सत्यापन कोड का अंक ${digit}`],
   [/^Resend OTP in (\d+)s$/, seconds => `${seconds} सेकंड में ओटीपी दोबारा भेजें`],
   [/^(\d+(?:\.\d+)?)\s*g$/, weight => `${weight} ग्राम`],
   [/^(\d+(?:\.\d+)?)\s*kg$/, weight => `${weight} किलोग्राम`],

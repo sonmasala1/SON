@@ -21,14 +21,15 @@ test('Google button uses the original four-colour G and remains independent of t
   await page.goto('/login');
   const button = page.getByRole('button', { name: 'Continue with Google', exact: true });
   await expect(button).toBeEnabled();
-  await expect(page.getByRole('button', { name: 'Send OTP', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Send OTP to Email', exact: true })).toBeDisabled();
   await expect(button.locator('img')).toHaveAttribute('src', '/images/google-g.svg');
   expect(await button.locator('img').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
   const styles = await button.evaluate(element => { const css = getComputedStyle(element); return { background: css.backgroundColor, weight: css.fontWeight, border: css.borderTopColor }; });
-  expect(styles).toEqual({ background: 'rgb(255, 255, 255)', weight: '700', border: 'rgb(218, 220, 224)' });
-  const google = await button.boundingBox(), divider = await page.locator('.customer-auth-divider').boundingBox(), terms = await page.locator('.customer-auth-terms').boundingBox();
+  expect(styles).toEqual({ background: 'rgb(255, 253, 248)', weight: '500', border: 'rgb(222, 216, 201)' });
+  const google = await button.boundingBox(), divider = await page.locator('.customer-auth-divider').first().boundingBox(), terms = await page.locator('.customer-auth-terms').boundingBox();
   expect(divider.y).toBeLessThan(google.y); expect(terms.y).toBeGreaterThan(google.y);
-  await expect(page.locator('input[type="email"], input[type="password"]')).toHaveCount(0);
+  await expect(page.locator('input[type="email"]')).toHaveCount(1);
+  await expect(page.locator('input[type="password"]')).toHaveCount(0);
 });
 
 test('Google callback returns to checkout with the guest bag; persistent sessions skip further OTP and Google prompts', async ({ page, context, backendURL }) => {
@@ -61,8 +62,9 @@ test('cancelling Google consent returns to the login card with a recoverable err
   expect(new URL(page.url()).searchParams.get('next')).toBe('/checkout');
   await expect(page.locator('.customer-auth-card').getByRole('alert')).toContainText('cancelled');
   await expect(page.getByRole('button', { name: 'Continue with Google', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Continue with Mobile OTP', exact: true }).click();
   await expect(page.getByLabel('FULL NAME', { exact: true })).toBeEnabled();
-  await expect(page.getByRole('heading', { name: 'Welcome to SON MASALA' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
 });
 
 test('unconfigured Google sign-in shows a clear error and leaves mobile OTP usable', async ({ page }) => {
@@ -70,6 +72,7 @@ test('unconfigured Google sign-in shows a clear error and leaves mobile OTP usab
   await page.route('**/auth/google/start', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false, message: 'Google sign-in is currently unavailable. Please use mobile OTP.' }) }));
   await page.getByRole('button', { name: 'Continue with Google', exact: true }).click();
   await expect(page.locator('.customer-auth-card').getByRole('alert')).toContainText('Please use mobile OTP');
+  await page.getByRole('button', { name: 'Continue with Mobile OTP', exact: true }).click();
   await expect(page.getByLabel('FULL NAME', { exact: true })).toBeEnabled(); await expect(page.getByRole('button', { name: 'Continue with Google', exact: true })).toBeEnabled();
   await page.getByLabel('FULL NAME', { exact: true }).fill('Mobile Shopper'); await page.getByLabel('MOBILE NUMBER', { exact: true }).fill('+91 98765 43210');
   await expect(page.getByRole('button', { name: 'Send OTP', exact: true })).toBeEnabled();

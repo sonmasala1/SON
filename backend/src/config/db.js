@@ -1,8 +1,7 @@
-import dns from 'node:dns';
 import mongoose from 'mongoose';
-import { initializeModels } from './models.js';
+import { initializeModels, modelsAreReady } from './models.js';
+import { logEvent } from '../services/logger.js';
 
-dns.setServers(['1.1.1.1', '8.8.8.8']);
 mongoose.set('bufferCommands', false);
 
 const retryBaseMs = 1000;
@@ -78,17 +77,18 @@ function isIndexDefinitionConflict(error) {
   return errorChain(error).some(value => value.code === 86 || value.codeName === 'IndexKeySpecsConflict');
 }
 
-function logEventOnce(_event, message) {
+function logEventOnce(event, message) {
   if (lastLoggedError === message) return;
   lastLoggedError = message;
-  console.error(message);
+  const diagnostic = /TLS/i.test(message) ? 'database_tls' : /authentication failed/i.test(message) ? 'database_authentication' : /DNS/i.test(message) ? 'database_dns' : /index/i.test(message) ? 'database_index_conflict' : /products collection/i.test(message) ? 'database_content_mismatch' : /database name|not configured|invalid/i.test(message) ? 'database_configuration' : /selection timed out/i.test(message) ? 'database_selection_timeout' : 'database_network';
+  logEvent(event === 'disconnected' ? 'WARN' : 'ERROR', event === 'disconnected' ? 'database.disconnected' : event === 'configuration-error' ? 'database.configuration_error' : 'database.error', { reason: 'database_unavailable', diagnostic, code: event });
 }
 
 mongoose.connection.on('connected', () => {
   setStateError(null);
   if (activeUri && modelsInitialized) {
     lastLoggedError = null;
-    console.log(`MongoDB Connected: ${mongoose.connection.name}`);
+    logEvent('INFO', 'database.reconnected');
   }
 });
 
@@ -97,7 +97,6 @@ mongoose.connection.on('reconnected', () => {
   retryCount = 0;
   if (modelsInitialized) {
     lastLoggedError = null;
-    console.log(`MongoDB Reconnected: ${mongoose.connection.name}`);
   }
 });
 
@@ -111,11 +110,12 @@ mongoose.connection.on('disconnected', () => {
 mongoose.connection.on('error', error => {
   if (!activeUri) return;
   setStateError(error);
+  logEventOnce('connection-error', `MongoDB connection unavailable: ${lastError}. Retrying with controlled backoff.`);
 });
 
 export function getDatabaseStatus() {
   const readyState = mongoose.connection.readyState;
-  const connected = readyState === 1 && modelsInitialized && !lastError;
+  const connected = readyState === 1 && (modelsInitialized || modelsAreReady()) && !lastError;
   const state = connected
     ? 'connected'
     : readyState === 2 || initializationPromise
@@ -192,7 +192,7 @@ async function initializeConnectedDatabase() {
     lastError = null;
     retryCount = 0;
     lastLoggedError = null;
-    console.log(`MongoDB Connected: ${mongoose.connection.name}`);
+    logEvent('INFO', 'database.connected');
   })().finally(() => {
     initializationPromise = null;
   });
@@ -239,6 +239,7 @@ export async function maintainDatabaseConnection(uri, databaseName = '') {
 }
 
 export async function disconnectDatabase() {
+  const wasConnected = mongoose.connection.readyState !== 0;
   activeUri = null;
   if (retryTimer) clearTimeout(retryTimer);
   retryTimer = null;
@@ -248,4 +249,5 @@ export async function disconnectDatabase() {
   lastError = null;
   lastLoggedError = null;
   await mongoose.disconnect();
+  if (wasConnected) logEvent('INFO', 'database.disconnected');
 }

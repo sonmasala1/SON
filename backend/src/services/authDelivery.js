@@ -1,15 +1,24 @@
-import nodemailer from 'nodemailer';
+import { sendTransactionalEmail, otpEmailTemplate, escapeEmailHtml } from './emailService.js';
 import { httpError } from '../utils/httpError.js';
+import { logEvent } from './logger.js';
 export function developmentPreview(req) { return req.app.locals.config.nodeEnv !== 'production' && req.app.locals.config.authDevPreview && /(?:_demo(?:$|_)|_test_)/.test(req.app.locals.databaseName() || ''); }
-export async function deliver(req, { channel, contact, subject, text, authenticationCode }) {
+export async function deliver(req, payload) {
+  try {
+    const source = await deliverInternal(req, payload);
+    logEvent('INFO', 'otp.dispatch.succeeded', { source: source === 'TEST_TRANSPORT' ? 'TEST' : source }, req);
+    return source;
+  } catch (error) {
+    req.logFailure = 'delivery_failed';
+    logEvent('ERROR', 'otp.dispatch.failed', { source: payload.channel === 'email' ? 'BREVO' : payload.channel === 'whatsapp' ? 'WHATSAPP' : 'SMS', reason: 'delivery_failed' }, req);
+    throw error;
+  }
+}
+async function deliverInternal(req, { channel, contact, subject, text, authenticationCode }) {
   const config = req.app.locals.config;
   // Tests inject an in-memory sink; no test messages leave the process.
   if (config.deliveryAdapter && config.nodeEnv === 'test') { await config.deliveryAdapter({ channel, contact, subject, text }); return 'TEST_TRANSPORT'; }
-  if (channel === 'email' && config.smtpHost && config.smtpUser && config.smtpPassword && config.smtpFrom) {
-    const transport = nodemailer.createTransport({ host: config.smtpHost, port: config.smtpPort, secure: config.smtpPort === 465, requireTLS: true, auth: { user: config.smtpUser, pass: config.smtpPassword }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000 });
-    try { await transport.sendMail({ from: config.smtpFrom, to: contact, subject, text }); return 'SMTP'; }
-    catch { throw httpError(503, 'Email delivery is unavailable. Please try again later.'); }
-    finally { transport.close(); }
+  if (channel === 'email' && (config.emailProvider === 'brevo' && config.brevoApiKey || !developmentPreview(req))) {
+    return sendTransactionalEmail(req, { to: contact, ...(authenticationCode ? otpEmailTemplate(authenticationCode) : { subject, textContent: text, htmlContent: `<p>${escapeEmailHtml(text)}</p>` }) });
   }
   if (['sms', 'whatsapp'].includes(channel) && config.twilioSid && config.twilioToken && (channel === 'sms' ? config.smsFrom || config.smsMessagingServiceSid : config.whatsappFrom)) {
     const prefix = channel === 'whatsapp' ? 'whatsapp:' : '';

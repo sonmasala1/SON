@@ -2,24 +2,24 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import morgan from 'morgan';
+import { requestLogging } from './services/logger.js';
 import createRoutes from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import mongoose from 'mongoose';
 
 export function safeRequestUrl(req) {
-  const pathname = req.originalUrl.split('?')[0];
-  return /^\/api\/v1\/auth\/google\/callback\/*$/i.test(pathname) ? pathname : req.originalUrl;
+  return req.originalUrl.split('?')[0];
 }
 
-export function createApp({ allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'], config = {} } = {}) {
+export function createApp({ allowedOrigins = ['http://localhost:3000', 'https://son-dusky.vercel.app'], config = {} } = {}) {
   const app = express();
   app.set('trust proxy', 1);
   app.locals.config = {
-    nodeEnv: process.env.NODE_ENV || 'development', demoEnabled: process.env.ENABLE_DEMO_CHECKOUT === 'true', deliveryChargePaise: 4900, freeDeliveryThresholdPaise: 49900,
+    crossSiteCookies: process.env.SESSION_CROSS_SITE_COOKIES === 'true',
+    nodeEnv: process.env.NODE_ENV || 'development', demoEnabled: process.env.ENABLE_DEMO_CHECKOUT === 'true', deliveryChargePaise: Number(process.env.DELIVERY_CHARGE_PAISE || 4900), freeDeliveryThresholdPaise: Number(process.env.FREE_DELIVERY_THRESHOLD_PAISE || 49900),
     mfaEncryptionKey: process.env.ADMIN_MFA_ENCRYPTION_KEY, authDevPreview: process.env.AUTH_DEV_PREVIEW === 'true',
     webAuthnRpId: process.env.ADMIN_WEBAUTHN_RP_ID || new URL(process.env.STAFF_APP_ORIGIN || (process.env.NODE_ENV === 'production' ? 'https://son-dusky.vercel.app' : 'http://localhost:3000')).hostname, webAuthnOrigin: process.env.STAFF_APP_ORIGIN || (process.env.NODE_ENV === 'production' ? 'https://son-dusky.vercel.app' : 'http://localhost:3000'),
-    smtpHost: process.env.SMTP_HOST, smtpPort: Number(process.env.SMTP_PORT || 587), smtpUser: process.env.SMTP_USER, smtpPassword: process.env.SMTP_PASSWORD, smtpFrom: process.env.SMTP_FROM,
+    emailProvider: process.env.EMAIL_PROVIDER || 'brevo', brevoApiKey: process.env.BREVO_API_KEY, brevoSenderEmail: process.env.BREVO_SENDER_EMAIL, brevoSenderName: process.env.BREVO_SENDER_NAME || 'SON MASALA',
     twilioSid: process.env.TWILIO_ACCOUNT_SID, twilioToken: process.env.TWILIO_AUTH_TOKEN, smsFrom: process.env.TWILIO_SMS_FROM, whatsappFrom: process.env.TWILIO_WHATSAPP_FROM,
     whatsappOtpContentSid: process.env.TWILIO_WHATSAPP_OTP_CONTENT_SID, smsMessagingServiceSid: process.env.TWILIO_SMS_MESSAGING_SERVICE_SID, smsOtpTemplate: process.env.SMS_OTP_TEMPLATE,
     googleClientId: process.env.GOOGLE_CLIENT_ID, googleClientSecret: process.env.GOOGLE_CLIENT_SECRET, googleRedirectUri: process.env.GOOGLE_REDIRECT_URI || ((process.env.NODE_ENV === 'production') ? 'https://son-5wk9.onrender.com/api/v1/auth/google/callback' : 'http://localhost:5000/api/v1/auth/google/callback'),
@@ -27,19 +27,19 @@ export function createApp({ allowedOrigins = ['http://localhost:3000', 'http://l
   };
   app.locals.allowedOrigins = allowedOrigins;
   app.locals.databaseName = () => mongoose.connection.name;
+  app.use(requestLogging);
   app.use(helmet());
   app.use(cors({
     origin(origin, callback) {
       if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-      callback(Object.assign(new Error('Origin is not allowed'), { status: 403 }));
+      callback(Object.assign(new Error('Origin is not allowed'), { status: 403, logReason: 'cors_origin_rejected' }));
     },
     credentials: true,
+    exposedHeaders: ['Retry-After', 'X-Request-ID'],
   }));
   app.use(express.text({ type: 'text/csv', limit: '2mb' }));
   app.use(express.json({ limit: '32kb' }));
   app.use(cookieParser());
-  morgan.token('safe-url', safeRequestUrl);
-  app.use(morgan(':method :safe-url :status :response-time ms - :res[content-length]'));
   app.use('/api/v1', createRoutes());
   app.use((_req, res) => res.status(404).json({ success: false, message: 'Endpoint not found' }));
   app.use(errorHandler);

@@ -22,7 +22,7 @@ test('products default to drafts without invented prices or stock', async () => 
 test('browsing explicitly approved drafts does not enable their purchase or expose archived products', async () => {
   const filter = storefrontFilter(false, false);
   assert.deepEqual(filter.$or[0], publishedFilter(false, false));
-  assert.deepEqual(filter.$or[1], { catalogVisible: true, status: { $in: ['draft', 'published'] }, isDemo: { $ne: true } });
+  assert.deepEqual(filter.$or[1], { catalogVisible: true, status: { $in: ['draft', 'published'] }, isDemo: { $ne: true }, isSample: { $ne: true } });
   assert.equal(publishedFilter(false, true).status, 'published');
   const preview = new Product({ name: 'New spice', slug: 'new-spice', category: 'whole-spices', catalogVisible: true });
   await preview.validate();

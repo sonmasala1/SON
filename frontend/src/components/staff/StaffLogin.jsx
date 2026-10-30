@@ -1,21 +1,23 @@
 "use client";
 import { Text, LocalizedAttrs } from "@/components/LocalizedText";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { startAuthentication } from "@simplewebauthn/browser";
 import { apiRequest } from "@/lib/api";
 import Icon from "@/components/Icon";
 
 export default function StaffLogin({ realm }) {
-  const owner = realm === "owner";
   const router = useRouter();
   const [adminId, setAdminId] = useState(""),
     [password, setPassword] = useState(""),
-    [code, setCode] = useState("123456"),
+    [code, setCode] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const [supportId, setSupportId] = useState('');
+  const inFlight = useRef(false);
   async function login(event) {
     event.preventDefault();
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     setError("");
     try {
@@ -27,49 +29,18 @@ export default function StaffLogin({ realm }) {
         method: "POST",
         body: JSON.stringify({
           challengeToken: challenge.challengeToken,
-          code: code.trim() || "123456",
+          code: code.trim(),
         }),
       });
       setPassword("");
       setCode("");
       router.replace(`/${realm}/dashboard`);
     } catch (error) {
+      setSupportId(error.requestId || '');
       setError(error.message);
       setCode("");
     } finally {
-      setBusy(false);
-    }
-  }
-  async function passkey() {
-    if (!adminId.trim()) {
-      setError("Enter your Owner ID first.");
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      const options = await apiRequest(`${realm}/auth/passkeys/options`, {
-        method: "POST",
-        body: JSON.stringify({ adminId }),
-      });
-      const response = await startAuthentication({
-        optionsJSON: options.options,
-      });
-      await apiRequest(`${realm}/auth/passkeys/verify`, {
-        method: "POST",
-        body: JSON.stringify({
-          challengeToken: options.challengeToken,
-          response,
-        }),
-      });
-      router.replace(`/${realm}/dashboard`);
-    } catch (error) {
-      setError(
-        error.name === "NotAllowedError"
-          ? "Passkey sign-in was cancelled. Please try again."
-          : error.message,
-      );
-    } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }
@@ -82,26 +53,16 @@ export default function StaffLogin({ realm }) {
         </p>
         <h1>
           <Text>
-            {owner ? (
-              <>
-                <Text>{"One owner."}</Text>
-                <br />
-                <Text>{"Clear accountability."}</Text>
-              </>
-            ) : (
-              <>
-                <Text>{"Your workspace."}</Text>
-                <br />
-                <Text>{"Your responsibilities."}</Text>
-              </>
-            )}
+            <>
+              <Text>{"Your workspace."}</Text>
+              <br />
+              <Text>{"Your responsibilities."}</Text>
+            </>
           </Text>
         </h1>
         <p>
           <Text>
-            {owner
-              ? "Manage staff access, review security activity, and oversee the business from your private owner console."
-              : "Access the business tools assigned to your staff account. Every administrative action is checked by the server."}
+            Access the business tools assigned to your staff account. Every administrative action is checked by the server.
           </Text>
         </p>
         <LocalizedAttrs>
@@ -112,10 +73,10 @@ export default function StaffLogin({ realm }) {
       </div>
       <div className="staff-login-form">
         <p className="eyebrow">
-          <Text>{owner ? "SUPER ADMIN / OWNER" : "AUTHORIZED STAFF ONLY"}</Text>
+          <Text>{"AUTHORIZED STAFF ONLY"}</Text>
         </p>
         <h2>
-          <Text>{owner ? "Owner sign-in" : "Admin sign-in"}</Text>
+          <Text>{"Admin sign-in"}</Text>
         </h2>
         <p>
           <Text>
@@ -126,7 +87,7 @@ export default function StaffLogin({ realm }) {
         </p>
         <form onSubmit={login}>
           <label>
-            <Text>{owner ? "Owner ID" : "Admin ID"}</Text>
+            <Text>{"Admin ID"}</Text>
             <input
               name="adminId"
               value={adminId}
@@ -147,7 +108,7 @@ export default function StaffLogin({ realm }) {
               required
               maxLength={128}
               autoComplete="current-password"
-              placeholder="Enter password (e.g. As@singh8 or 123456)"
+              placeholder="Enter your password"
             />
           </label>
           <label>
@@ -155,22 +116,20 @@ export default function StaffLogin({ realm }) {
             <LocalizedAttrs>
               <input
                 name="mfaCode"
+                aria-label="MFA verification code"
                 value={code}
                 onChange={(event) =>
                   setCode(event.target.value.toUpperCase().trim())
                 }
                 required
                 maxLength={39}
-                pattern="(?:[0-9]{6}|[A-F0-9]{4}(?:-[A-F0-9]{4}){7})"
+                pattern="[0-9]{6}"
+                inputMode="numeric"
                 autoComplete="one-time-code"
-                placeholder="Enter 123456 or 6-digit code"
+                placeholder="Enter your current authenticator code"
               />
             </LocalizedAttrs>
-            <small>
-              <Text>
-                Enter 123456 (configured in backend/.env) or your Google Authenticator code.
-              </Text>
-            </small>
+            <small><Text>Enter the current six-digit code from your authenticator app.</Text></small>
           </label>
           <Text error>
             {error && (
@@ -181,32 +140,15 @@ export default function StaffLogin({ realm }) {
           </Text>
           <button className="button w-full" disabled={busy}>
             <Text>
-              {busy
-                ? "Verifying secure access…"
-                : owner
-                  ? "Sign in as Owner"
-                  : "Sign in as Admin"}
+              {busy ? "Verifying secure access…" : "Sign In as Admin"}
             </Text>{" "}
             <Icon size={24} />
           </button>
         </form>
-        <Text>
-          {owner && (
-            <button
-              type="button"
-              className="button button-outline w-full passkey-login"
-              onClick={passkey}
-              disabled={busy}
-            >
-              <Text>{"Sign in with a passkey"}</Text>
-            </button>
-          )}
-        </Text>
+        {error && supportId && <p className="auth-support-reference"><Text>Support reference</Text>: <code>{supportId}</code></p>}
         <p className="staff-login-help">
           <Text>
-            {owner
-              ? "Initial owner setup and emergency recovery require the protected deployment CLI. There is no public owner registration."
-              : "Administrator accounts require an owner-approved invitation and completed MFA enrollment. Public registration is unavailable."}
+            Administrator accounts require an authorized invitation and completed authenticator enrollment. Public registration is unavailable.
           </Text>
         </p>
       </div>

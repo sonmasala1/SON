@@ -21,7 +21,6 @@ import { showWishlist, changeWishlist } from '../controllers/wishlistController.
 
 export default function createRoutes() {
 const router = Router();
-router.use('/owner', staffRouter('owner'));
 router.use('/admin', staffRouter('admin'));
 router.get('/health', getHealth);
 router.get('/ready', getReadiness);
@@ -37,8 +36,8 @@ router.get('/categories', requireDatabase, async (req, res, next) => {
 router.get('/reviews', requireDatabase, getReviews);
 router.use(['/cart', '/auth', '/wishlist', '/checkout', '/demo-payments', '/orders', '/reviews'], requireDatabase, identifyCustomer);
 const authLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: req => req.app.locals.config.nodeEnv === 'test' ? 1000 : 30, standardHeaders: true, legacyHeaders: false, message: { success: false, message: 'Too many sign-in attempts. Please try again later.' } });
+router.use(['/auth', '/cart', '/wishlist', '/checkout', '/orders'], (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 router.get('/auth/me', me);
-router.use('/auth', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 router.post(['/auth/register', '/auth/login'], authLimit, customerOrigin, passwordAuthenticationRetired);
 router.post('/auth/logout', customerOrigin, logout);
 router.post(['/auth/send-otp', '/auth/otp/request'], authLimit, customerOrigin, requestCustomerOtp);
@@ -53,13 +52,13 @@ router.get('/auth/google/callback', authLimit, googleLoginCallback);
 router.get('/auth/orders', requireCustomer, customerOrders);
 router.post('/auth/revoke-other-sessions', requireCustomer, customerOrigin, revokeOtherCustomerSessions);
 router.get('/cart', showCart);
-router.post('/cart/items', addCartItem);
-router.patch('/cart/items/:id', updateCartItem);
-router.delete('/cart/items/:id', removeCartItem);
+router.post('/cart/items', customerOrigin, addCartItem);
+router.patch('/cart/items/:id', customerOrigin, updateCartItem);
+router.delete('/cart/items/:id', customerOrigin, removeCartItem);
 router.get('/wishlist', requireCustomer, showWishlist);
 router.put('/wishlist/:slug', requireCustomer, customerOrigin, changeWishlist);
 router.delete('/wishlist/:slug', requireCustomer, customerOrigin, changeWishlist);
-router.post('/checkout/preview', requireDemo, requireCustomer, customerOrigin, previewCheckout);
+router.post('/checkout/preview', requireCustomer, customerOrigin, previewCheckout);
 router.post('/demo-payments', requireDemo, requireCustomer, customerOrigin, rateLimit({ windowMs: 60000, max: 30, message: { success: false, message: 'Please wait before trying another demo payment.' } }), demoPayment);
 router.get('/orders/:id', requireDemo, showOrder);
 router.post('/reviews', requireCustomer, createReview);

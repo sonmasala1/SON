@@ -25,7 +25,7 @@ test('Google customer OAuth verifies identity, binds the browser, and preserves 
   t.after(async () => { if (mongoose.connection.name === databaseName && databaseName.startsWith('son_masala_test_google_')) await mongoose.connection.dropDatabase(); await mongoose.disconnect(); });
   await initializeModels(); await seedDemo();
   let now = Date.now();
-  const config = { nodeEnv: 'test', demoEnabled: true, mfaEncryptionKey: randomBytes(32).toString('base64'), clock: () => now, ...createGoogleTestProvider() };
+  const config = { nodeEnv: 'test', webAuthnOrigin: 'http://localhost:3000', demoEnabled: true, mfaEncryptionKey: randomBytes(32).toString('base64'), clock: () => now, ...createGoogleTestProvider() };
   const app = createApp({ config }), server = app.listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
   t.after(() => new Promise(resolve => server.close(resolve)));
@@ -142,6 +142,6 @@ test('Google customer OAuth verifies identity, binds the browser, and preserves 
     for (const value of ['//untrusted.example', '/\\untrusted.example', '/checkout\n', '/admin', '/owner/dashboard', '/login', '/shop/../../owner', undefined]) assert.equal(customerReturnTo(value), '/account');
     assert.equal(customerReturnTo('/shop?q=haldi#products'), '/shop?q=haldi#products');
     for (const pathname of ['/api/v1/auth/google/callback', '/api/v1/auth/google/callback/', '/API/v1/AUTH/google/CALLBACK']) assert.equal(safeRequestUrl({ originalUrl: `${pathname}?code=private&state=private`, path: '/callback' }), pathname);
-    assert.equal(safeRequestUrl({ originalUrl: '/api/v1/products?q=haldi' }), '/api/v1/products?q=haldi');
+    assert.equal(safeRequestUrl({ originalUrl: '/api/v1/products?q=haldi' }), '/api/v1/products');
   });
 });

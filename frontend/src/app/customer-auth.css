@@ -1,4 +1,5 @@
 /* Customer authentication shares the existing brand mark, with a quiet cream palette. */
+.auth-support-reference { font-size: 14px; color: #625e51; overflow-wrap: anywhere; margin: 12px 0; line-height: 1.6; }
 .customer-auth-header, .customer-auth-page { color: #30221a; background: #fbf6ef; }
 .customer-auth-header { border-bottom: 1px solid #e9ddcd; position: relative; z-index: 25; }
 .customer-auth-header-inner { max-width: 1440px; min-height: 96px; margin: auto; padding: 20px 52px; display: flex; align-items: center; justify-content: space-between; gap: 32px; }
@@ -126,3 +127,86 @@
   .customer-otp-digits { gap: 6px; }
 }
 @media (prefers-reduced-motion: reduce) { .customer-auth-intro, .customer-auth-spinner { animation: none; } }
+
+/* The customer page alone uses the forest green / antique gold palette. */
+.customer-auth-page .customer-auth-stage { padding: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; }
+.customer-auth-page .customer-auth-story { position: relative; isolation: isolate; overflow: hidden; width: 100%; min-height: 810px; padding: 44px clamp(30px, 5vw, 88px) 32px; display: flex; flex-direction: column; background: #102f28; color: #e4ca92; }
+.customer-auth-page .customer-story-brand .brand, .customer-auth-page .customer-story-brand .brand-mark, .customer-auth-page .customer-story-brand .brand small { color: #e4ca92; }
+.customer-auth-page .customer-story-copy { position: relative; z-index: 2; margin-top: 64px; }
+.customer-auth-page .customer-story-eyebrow { font-size: 14px; font-weight: 600; letter-spacing: 2.4px; line-height: 1.8; }
+.customer-auth-page .customer-story-copy h2 { font-family: Georgia, 'Times New Roman', serif; font-size: clamp(45px, 4.2vw, 66px); line-height: 1.12; font-weight: 400; letter-spacing: -1.6px; margin: 20px 0; }
+.customer-auth-page .customer-story-copy h2 em { font-weight: 400; color: #f0d8a4; }
+.customer-auth-page .customer-story-copy > p:last-child { max-width: 365px; font-size: 15px; line-height: 1.9; color: #e0dfca; }
+.customer-auth-page .customer-story-image { position: relative; margin: 24px -35px 16px; flex: 1; min-height: 245px; overflow: hidden; border-radius: 50% 50% 12px 12px; }
+.customer-auth-page .customer-story-image img { object-fit: cover; object-position: 55% 65%; }
+.customer-auth-page .customer-story-image::after { position: absolute; inset: 0; content: ''; background: linear-gradient(#102f2866, transparent 35%, #102f28); }
+.customer-auth-page .customer-story-features { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding-top: 20px; border-top: 1px solid #dcc18b40; }
+.customer-auth-page .customer-story-features > div { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; font-size: 14px; letter-spacing: .3px; line-height: 1.6; }
+.customer-auth-page .customer-story-features svg { width: 25px; height: 25px; }
+.customer-auth-page .customer-story-tagline { text-align: center; font-family: Georgia, serif; font-size: 17px; color: #e4ca92; margin-top: 25px; }
+.customer-auth-page .customer-auth-form-side { width: 100%; min-width: 0; padding: 54px clamp(22px, 4vw, 64px); display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; background: radial-gradient(ellipse at top right, #f2e6cf, transparent 65%), #f7f2e8; }
+.customer-auth-page .customer-auth-card { width: min(480px, 100%); min-width: 0; padding: 34px 38px; border-radius: 24px; border-color: #e5dccc; background: #fffaf1; box-shadow: 0 18px 60px #463c2510, 0 3px 12px #463c2505; }
+.customer-auth-page .customer-auth-card .brand-mark, .customer-auth-page .customer-auth-card .brand small { color: #8a6b36; }
+.customer-auth-page .customer-auth-brand { margin-bottom: 26px; }
+.customer-auth-page .customer-auth-tabs { display: grid; grid-template-columns: 1fr 1fr; background: #eee9dd; padding: 5px; border: 1px solid #e4dccb; border-radius: 10px; gap: 5px; margin-bottom: 28px; }
+.customer-auth-page .customer-auth-tabs button { min-height: 42px; border-radius: 7px; padding: 9px; color: #655d4c; background: transparent; font-size: 14px; font-weight: 600; }
+.customer-auth-page .customer-auth-tabs button[aria-selected='true'] { background: #183f32; color: #fff4d9; box-shadow: 0 2px 5px #102f281c; }
+.customer-auth-page .customer-auth-card button:focus-visible, .customer-auth-page .customer-auth-card a:focus-visible { outline: 2px solid #8a6b36; outline-offset: 4px; }
+.customer-auth-page .customer-auth-intro h1 { color: #203a2e; font-size: clamp(28px, 2.6vw, 36px); line-height: 1.2; letter-spacing: -.8px; }
+.customer-auth-page .customer-auth-intro > p { color: #756d5b; font-size: 14px; margin: 12px auto 28px; line-height: 1.7; }
+.customer-auth-page .customer-auth-form { gap: 19px; }
+.customer-auth-page .customer-auth-field > label, .customer-auth-page .customer-otp-fields legend { color: #4a5143; font-size: 14px; letter-spacing: 1.2px; }
+.customer-auth-page .customer-auth-field input, .customer-auth-page .customer-mobile-field { border-color: #ded8c9; background: #fffdf8; border-radius: 8px; }
+.customer-auth-page .customer-auth-field input { min-height: 51px; font-size: 14px; }
+.customer-auth-page .customer-auth-field input::placeholder { color: #8e8a7c; }
+.customer-auth-page .customer-mobile-field input { background: transparent; }
+.customer-auth-page .customer-mobile-field > span { font-size: 14px; color: #525949; border-color: #ded8c9; }
+.customer-auth-page .customer-auth-field input:focus-visible, .customer-auth-page .customer-mobile-field:focus-within, .customer-auth-page .customer-otp-digits input:focus-visible { outline-color: #52705b; }
+.customer-auth-page .customer-mobile-field input:focus-visible { outline: none; }
+.customer-auth-page .customer-auth-primary { margin-top: 3px; border: 1px solid #183f32; background: #183f32; color: #fff5dc; font-size: 14px; font-weight: 600; border-radius: 8px; min-height: 52px; }
+.customer-auth-page .customer-auth-primary:hover:not(:disabled) { background: #285440; }
+.customer-auth-page .customer-auth-primary:disabled { opacity: .65; cursor: not-allowed; }
+.customer-auth-page .customer-auth-divider { margin: 23px 0; font-size: 14px; font-weight: 400; letter-spacing: 1.6px; color: #8a826e; }
+.customer-auth-page .customer-auth-divider::before, .customer-auth-page .customer-auth-divider::after { background: #e4ddcf; }
+.customer-auth-page .customer-google-button { border-color: #ded8c9; font-size: 14px; font-weight: 500; border-radius: 8px; min-height: 50px; background: #fffdf8; }
+.customer-auth-page .customer-email-button { background: transparent; border: 0; color: #47604c; min-height: 44px; padding: 10px 4px; font-size: 14px; font-weight: 500; }
+.customer-auth-page .customer-email-button:hover:not(:disabled) { background: transparent; color: #183f32; text-decoration: underline; }
+.customer-auth-page .customer-email-button svg { width: 24px; height: 24px; }
+.customer-auth-page .customer-auth-terms { margin-top: 19px; font-size: 14px; color: #847c69; line-height: 1.9; }
+.customer-auth-page .customer-auth-terms a { color: #4b5b45; }
+.customer-auth-page .customer-otp-actions { font-size: 14px; }
+.customer-auth-page .customer-otp-actions button, .customer-auth-page .customer-otp-actions .customer-change-mobile { color: #31583e; }
+.customer-auth-page .customer-code-timing { font-size: 14px; }
+.customer-auth-page .customer-auth-footer { background: #f7f2e8; padding: 18px; font-size: 14px; }
+.customer-auth-page .customer-auth-footer span[lang='hi'] { display: none; }
+@media (min-width: 1600px) { .customer-auth-page .customer-auth-story { padding-inline: max(70px, calc((100vw - 1300px) / 2)); } }
+@media (max-width: 1000px) and (min-width: 761px) {
+  .customer-auth-page .customer-auth-story { padding-inline: 28px; }
+  .customer-auth-page .customer-story-copy h2 { font-size: 48px; }
+  .customer-auth-page .customer-story-eyebrow { font-size: 14px; letter-spacing: 1.5px; }
+  .customer-auth-page .customer-auth-form-side { padding: 35px 20px; }
+  .customer-auth-page .customer-auth-card { padding: 28px 24px; }
+}
+@media (max-width: 760px) {
+  .customer-auth-page .customer-auth-stage { grid-template-columns: minmax(0, 1fr); }
+  .customer-auth-page .customer-auth-story { min-height: 0; padding: 30px 25px; }
+  .customer-auth-page .customer-story-brand { display: none; }
+  .customer-auth-page .customer-story-copy { margin-top: 0; max-width: 72%; }
+  .customer-auth-page .customer-story-eyebrow { font-size: 14px; letter-spacing: 1.3px; }
+  .customer-auth-page .customer-story-copy h2 { font-size: 36px; letter-spacing: -.8px; margin: 10px 0; }
+  .customer-auth-page .customer-story-copy > p:last-child { font-size: 14px; line-height: 1.7; max-width: 300px; }
+  .customer-auth-page .customer-story-image { position: absolute; z-index: -1; inset: 0 0 0 40%; min-height: 0; margin: 0; border-radius: 0; opacity: .4; }
+  .customer-auth-page .customer-story-image::after { background: linear-gradient(90deg, #102f28, #102f2810); }
+  .customer-auth-page .customer-story-features, .customer-auth-page .customer-story-tagline { display: none; }
+  .customer-auth-page .customer-auth-form-side { padding: 28px 16px; }
+  .customer-auth-page .customer-auth-card { padding: 28px 24px; border-radius: 20px; }
+  .customer-auth-page .customer-auth-field input { font-size: 16px; }
+  .customer-auth-page .customer-auth-intro h1 { font-size: 30px; }
+}
+@media (max-width: 359px) {
+  .customer-auth-page .customer-auth-form-side { padding-inline: 12px; }
+  .customer-auth-page .customer-auth-card { padding: 25px 18px; }
+  .customer-auth-page .customer-story-copy { max-width: 90%; }
+  .customer-auth-page .customer-story-copy h2 { font-size: 32px; }
+  .customer-auth-page .customer-auth-tabs button { font-size: 14px; }
+}

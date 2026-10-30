@@ -20,7 +20,8 @@ try {
   await mongoose.connect(uri, { dbName: databaseName, serverSelectionTimeoutMS: 5000 });
   await initializeModels(); await seedDemo();
   let authClockOffset = 0;
-  const config = { nodeEnv: 'test', demoEnabled: true, mfaEncryptionKey: randomBytes(32).toString('base64'), authDevPreview: true, smtpHost: null, smtpUser: null, smtpPassword: null, smtpFrom: null, twilioSid: null, twilioToken: null, clock: () => Date.now() + authClockOffset, ...createGoogleTestProvider() };
+  const emailMessages = [];
+  const config = { nodeEnv: 'test', webAuthnRpId: 'localhost', webAuthnOrigin: process.env.E2E_BASE_URL || 'http://localhost:3000', crossSiteCookies: false, emailDeliveryAdapter: async message => emailMessages.push(message), demoEnabled: true, mfaEncryptionKey: randomBytes(32).toString('base64'), authDevPreview: true, brevoApiKey: null, twilioSid: null, twilioToken: null, clock: () => Date.now() + authClockOffset, ...createGoogleTestProvider() };
   const staff = { adminId: newAdminId(false), password: randomToken(), secret: newMfaSecret() };
   const staffId = new mongoose.Types.ObjectId();
   await AdminAccount.create({ _id: staffId, adminId: staff.adminId, fullName: 'Isolated Browser Staff', email: 'staff@example.com', role: 'ADMIN', permissions: operationalPermissions, passwordHash: await hashPassword(staff.password), status: 'ACTIVE', mfaEnabled: true, mfaSecretEncrypted: encryptSecret(staff.secret, config, String(staffId)), lastMfaStep: Math.floor(Date.now() / 30000) - 2, emailVerifiedAt: new Date(), verificationSource: 'TEST_TRANSPORT' });
@@ -30,9 +31,9 @@ try {
   const created = await beginOwnerBootstrap(req, { fullName: 'Isolated Browser Owner', email: 'owner@example.com', phone: '+919876543210', password: ownerPassword }, proof);
   const owner = { adminId: created.account.adminId, password: ownerPassword, secret: new URL(created.enrollmentUri).searchParams.get('secret') };
   await completeOwnerBootstrap(req, created.account.id, totp(owner.secret).generate({ timestamp: Date.now() - 30000 }), proof);
-  server = createApp({ config }).listen(0, '127.0.0.1');
+  server = createApp({ config, allowedOrigins: ['http://localhost:3000', process.env.E2E_BASE_URL || 'http://localhost:3000'] }).listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
   process.send?.({ port: server.address().port, staff, owner });
-  process.on('message', async message => { if (message === 'shutdown') { await cleanup(); process.exit(0); } else if (message?.type === 'advance-auth-clock') { authClockOffset += message.milliseconds; process.send?.({ type: 'auth-clock-advanced', id: message.id }); } });
+  process.on('message', async message => { if (message?.type === 'read-email-code') { process.send?.({ type: 'email-code', id: message.id, code: emailMessages.at(-1)?.code }); } else if (message === 'shutdown') { await cleanup(); process.exit(0); } else if (message?.type === 'advance-auth-clock') { authClockOffset += message.milliseconds; process.send?.({ type: 'auth-clock-advanced', id: message.id }); } });
   process.once('SIGTERM', async () => { await cleanup(); process.exit(0); });
 } catch (error) { await cleanup(); console.error('Isolated browser-test initialization failed:',error.name); process.exit(1); }

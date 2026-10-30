@@ -8,7 +8,6 @@ import { httpError } from '../utils/httpError.js';
 export async function previewCheckout(req, res, next) {
   try {
     if (req.body.delivery) parse(deliveryInput, req.body.delivery);
-    await releaseExpiredReservations();
     const cart = await serializeCart(req, await getCart(req));
     if (!cart.valid) throw httpError(409, 'Please review your bag. Some quantities are unavailable.');
     res.json({ success: true, cart });

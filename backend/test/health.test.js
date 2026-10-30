@@ -12,6 +12,7 @@ test('versioned health API preserves response and frontend CORS access', async (
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('access-control-allow-origin'), 'http://localhost:3000');
   assert.equal(response.headers.get('access-control-allow-credentials'), 'true');
+  assert.match(response.headers.get('access-control-expose-headers'), /retry-after/i);
   const data = await response.json();
   assert.equal(data.status, 'healthy');
   assert.equal(data.success, true);
@@ -19,20 +20,27 @@ test('versioned health API preserves response and frontend CORS access', async (
   assert.ok(Number.isFinite(Date.parse(data.timestamp)));
 });
 
-test('CORS allows both explicit development origins and rejects another origin', async (t) => {
+test('CORS allows both approved origins and rejects another origin', async (t) => {
   const server = createApp().listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
   t.after(() => new Promise(resolve => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}/api/v1`;
-  for (const origin of ['http://localhost:3000', 'http://localhost:3001']) {
+  for (const origin of ['http://localhost:3000', 'https://son-dusky.vercel.app']) {
     const response = await fetch(`${base}/health`, { headers: { Origin: origin } });
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('access-control-allow-origin'), origin);
+    for (const endpoint of ['cart', 'auth/me', 'products', 'auth/google/start', 'auth/email/send-otp', 'auth/email/resend-otp']) {
+      const preflight = await fetch(`${base}/${endpoint}`, { method: 'OPTIONS', headers: { Origin: origin, 'Access-Control-Request-Method': endpoint.startsWith('auth/') ? 'POST' : 'GET', 'Access-Control-Request-Headers': 'content-type,idempotency-key' } });
+      assert.equal(preflight.status, 204);
+      assert.equal(preflight.headers.get('access-control-allow-origin'), origin);
+      assert.equal(preflight.headers.get('access-control-allow-credentials'), 'true');
+      assert.match(preflight.headers.get('access-control-allow-headers'), /idempotency-key/i);
+    }
   }
   const response = await fetch(`${base}/health`, { headers: { Origin: 'https://untrusted.example' } });
   assert.equal(response.status, 403);
   assert.equal(response.headers.get('access-control-allow-origin'), null);
-  const preflight = await fetch(`${base}/newsletter`, { method: 'OPTIONS', headers: { Origin: 'http://localhost:3001', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type' } });
+  const preflight = await fetch(`${base}/newsletter`, { method: 'OPTIONS', headers: { Origin: 'https://son-dusky.vercel.app', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type' } });
   assert.equal(preflight.status, 204);
   assert.equal(preflight.headers.get('access-control-allow-credentials'), 'true');
 });

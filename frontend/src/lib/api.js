@@ -1,16 +1,19 @@
-const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL;
-const productionApiBaseUrl = 'https://son-5wk9.onrender.com/api/v1';
-export const API_BASE_URL = (configuredApiBaseUrl || (process.env.NODE_ENV === 'production' ? productionApiBaseUrl : 'http://localhost:5000/api/v1')).replace(/\/+$/, '');
+import apiConfiguration from '../../config/api-base';
+export const API_BASE_URL = apiConfiguration.resolveApiBaseUrl({ nodeEnv: process.env.NODE_ENV, configuredUrl: process.env.NEXT_PUBLIC_API_BASE_URL });
+const validRequestId = value => typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value);
 
-if (process.env.NODE_ENV === 'production' && /^https?:\/\/localhost(?:[:/]|$)/i.test(API_BASE_URL)) {
-  throw new Error('NEXT_PUBLIC_API_BASE_URL must not use localhost in production.');
+export function apiUrl(endpoint) {
+  const path = endpoint.replace(/^\/+/, '').replace(/^api\/v1\/?/, '');
+  const base = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_PROXY === 'true' ? '/api/v1' : API_BASE_URL;
+  return `${base}/${path}`;
 }
 
 export class ApiError extends Error {
-  constructor(message, status = 0) { super(message); this.name = 'ApiError'; this.status = status; }
+  constructor(message, status = 0, requestId) { super(message); this.name = 'ApiError'; this.status = status; this.requestId = requestId; }
 }
 
 export async function apiRequest(endpoint, { timeout = 10000, signal, ...options } = {}) {
+  const requestId = crypto.randomUUID();
   const controller = new AbortController();
   const abort = () => controller.abort();
   if (signal?.aborted) controller.abort();
@@ -21,18 +24,19 @@ export async function apiRequest(endpoint, { timeout = 10000, signal, ...options
   try {
     const base = new URL(API_BASE_URL);
     if (!['http:', 'https:'].includes(base.protocol)) throw new Error('Invalid API protocol');
-    const path = endpoint.replace(/^\/+/, '').replace(/^api\/v1\/?/, '');
-    url = `${API_BASE_URL}/${path}`;
-    const response = await fetch(url, { ...options, credentials: 'include', headers: { Accept: 'application/json', ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...options.headers }, signal: controller.signal });
+    url = apiUrl(endpoint);
+    const response = await fetch(url, { ...options, credentials: 'include', headers: { Accept: 'application/json', ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...options.headers, 'X-Request-ID': requestId }, signal: controller.signal });
     const data = await response.json().catch(() => null);
-    if (!response.ok) { const error = new ApiError(`HTTP ${response.status}: ${data?.message || 'The request could not be completed.'}`, response.status); error.retryAfter = Number(response.headers.get('Retry-After')) || 0; throw error; }
-    if (!data || data.success === false) throw new ApiError('The server returned an unexpected response.', response.status);
+    const returnedId = response.headers.get('X-Request-ID');
+    const correlationId = validRequestId(returnedId) ? returnedId : requestId;
+    if (!response.ok) { const error = new ApiError(`HTTP ${response.status}: ${data?.message || 'The request could not be completed.'}`, response.status, correlationId); error.retryAfter = Number(response.headers.get('Retry-After')) || 0; error.requiresProfile = Boolean(data?.requiresProfile); throw error; }
+    if (!data || data.success === false) throw new ApiError('The server returned an unexpected response.', response.status, correlationId);
     return data;
   } catch (error) {
     if (signal?.aborted) throw error;
+    if (process.env.NODE_ENV === 'development') console.warn('[SON MASALA API]', JSON.stringify({ event: 'api.failure', requestId: error.requestId || requestId, status: error.status || 0, apiOrigin: new URL(API_BASE_URL).origin, reason: timedOut ? 'timeout' : error instanceof ApiError ? 'http_error' : 'network_error' }));
     if (error instanceof ApiError) throw error;
-    if (process.env.NODE_ENV === 'development') console.warn('[SON MASALA API]', url || API_BASE_URL, timedOut ? 'timeout' : 'network request failed');
-    throw new ApiError(timedOut ? 'The request took too long. Please try again.' : 'We couldn’t reach the store. Please check your connection and try again.');
+    throw new ApiError(timedOut ? 'The request took too long. Please try again.' : 'We couldn’t reach the store. Please check your connection and try again.', 0, requestId);
   } finally {
     clearTimeout(timer);
     signal?.removeEventListener('abort', abort);

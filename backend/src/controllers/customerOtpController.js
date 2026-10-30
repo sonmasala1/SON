@@ -32,11 +32,12 @@ export async function verifyCustomerOtp(req, res, next) {
     for (let attempt = 0; ; attempt++) {
       try {
         await mongoose.connection.transaction(async session => {
-          const consumed = await CustomerOtp.updateOne({ _id: challenge._id, status: 'ACTIVE', attempts: { $lt: 5 }, expiresAt: { $gt: new Date(customerNow(req)) } }, { status: 'USED', usedAt: new Date(customerNow(req)) }, { session });
+          const consumed = await CustomerOtp.updateOne({ _id: challenge._id, status: 'ACTIVE', attempts: { $lte: 5 }, expiresAt: { $gt: new Date(customerNow(req)) } }, { status: 'USED', usedAt: new Date(customerNow(req)) }, { session });
           if (!consumed.modifiedCount) throw httpError(401, 'This code was already used or expired. Please request a new code.');
           const preview = challenge.deliverySource === 'DEVELOPMENT_PREVIEW';
           const national = challenge.phone.slice(3);
           const existing = await User.find({ phone: { $in: [challenge.phone, national, `91${national}`] } }).limit(2).session(session);
+          req.customerAuthAction = existing.length ? 'login' : 'registration';
           if (existing.length > 1) throw httpError(409, 'This mobile number needs an account review. Please contact support.');
           user = await User.findOneAndUpdate(existing.length ? { _id: existing[0]._id } : { phone: challenge.phone }, {
             $setOnInsert: { name: challenge.fullName, role: 'CUSTOMER', accountStatus: 'ACTIVE' },

@@ -1,0 +1,33 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import mongoose from 'mongoose';
+import { initializeModels } from '../src/config/models.js';
+import Product from '../src/models/Product.js';
+import ProductVariant from '../src/models/ProductVariant.js';
+import { hydrateProduct, listProducts } from '../src/services/productService.js';
+
+test('catalogue uses canonical availability and consistent paise sorting without exposing samples', async t => {
+  if (!process.env.MONGODB_TEST_URI) return t.skip('Requires an isolated replica set.');
+  const dbName = `son_masala_test_availability_${Date.now()}_${process.pid}`;
+  await mongoose.connect(process.env.MONGODB_TEST_URI, { dbName });
+  t.after(async () => { if (mongoose.connection.name === dbName && dbName.startsWith('son_masala_test_availability_')) await mongoose.connection.dropDatabase(); await mongoose.disconnect(); });
+  await initializeModels();
+  const product = (slug, price, extra = {}) => Product.create({ name: slug, slug, category: 'ground-spices', description: 'Isolated availability fixture', status: 'published', variants: [{ label: '100 g', price, stock: 4 }], ...extra });
+  const legacy = await product('legacy-25', 25);
+  const cheap = await product('canonical-10', 999);
+  const expensive = await product('canonical-50', 1);
+  const inactive = await product('inactive-canonical', 2);
+  await product('sample-preview', 1, { isSample: true, catalogVisible: true });
+  const canonical = (record, pricePaise, extra = {}) => ProductVariant.create({ productId: record._id, sku: `${record.slug}-${extra.label || '100'}`, label: extra.label || '100 g', weightGrams: 100, pricePaise, mrpPaise: pricePaise, stock: 2, ...extra });
+  await canonical(cheap, 1000);
+  await canonical(expensive, 5000);
+  await canonical(expensive, 50, { isSample: true, label: 'sample' });
+  await canonical(inactive, 500, { isActive: false });
+  const args = { page: 1, limit: 20, sort: 'price-asc' };
+  const ascending = await listProducts(args, { includeSamples: false });
+  assert.deepEqual(ascending.products.map(p => p.slug), ['canonical-10', 'legacy-25', 'canonical-50', 'inactive-canonical']);
+  assert.deepEqual(ascending.products.map(p => p.variants[0]?.unitPricePaise), [1000, 2500, 5000, undefined]);
+  assert.deepEqual((await listProducts({ ...args, sort: 'price-desc' }, { includeSamples: false })).products.map(p => p.slug), ['canonical-50', 'legacy-25', 'canonical-10', 'inactive-canonical']);
+  assert.equal((await hydrateProduct(inactive.toObject(), null, false)).variants.length, 0);
+  assert.equal((await hydrateProduct(legacy.toObject(), null, false)).variants[0].unitPricePaise, 2500);
+});

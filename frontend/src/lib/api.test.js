@@ -1,9 +1,29 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { apiRequest, getProducts } from './api';
 
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 describe('shared API client', () => {
+  it('sends a request ID and preserves the backend correlation ID on errors', async () => {
+    const requestId = crypto.randomUUID();
+    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: 'Please try again' }), { status: 401, headers: { 'X-Request-ID': requestId } }));
+    vi.stubGlobal('fetch', fetch);
+    await expect(apiRequest('auth/me')).rejects.toMatchObject({ status: 401, requestId });
+    expect(fetch.mock.calls[0][1].headers['X-Request-ID']).toMatch(/^[a-f0-9-]{36}$/);
+  });
+  it('uses the same-origin browser proxy when enabled', async () => {
+    vi.stubGlobal('window', {});
+    vi.stubEnv('NEXT_PUBLIC_API_PROXY', 'true');
+    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true })));
+    vi.stubGlobal('fetch', fetch);
+    await apiRequest('cart');
+    expect(fetch.mock.calls[0][0]).toBe('/api/v1/cart');
+    expect(fetch.mock.calls[0][1].credentials).toBe('include');
+  });
+  it('preserves profile-completion and cooldown information from real HTTP errors', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: false, requiresProfile: true, message: 'Complete registration.' }), { status: 422, headers: { 'Retry-After': '60' } })));
+    await expect(apiRequest('auth/email/verify-otp')).rejects.toMatchObject({ status: 422, requiresProfile: true, retryAfter: 60 });
+  });
   it('uses a single API prefix and includes credentials', async () => {
     const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true }), { status: 200 }));
     vi.stubGlobal('fetch', fetch);

@@ -1,6 +1,42 @@
 // English source phrases are stable message keys. Keep translations here rather than in page components.
 // Names, addresses, contact details, SKUs and user-written reviews remain as authored.
 const entries = `
+Preparing your checkout…	चेकआउट तैयार किया जा रहा है…
+Add a spice before starting checkout.	चेकआउट शुरू करने से पहले कोई मसाला जोड़ें।
+Review your order	अपने ऑर्डर की समीक्षा करें
+Order total	ऑर्डर का कुल योग
+Online payment is not configured. Your order has not been placed.	ऑनलाइन भुगतान अभी उपलब्ध नहीं है। आपका ऑर्डर दर्ज नहीं किया गया है।
+Email service is busy. Please wait before requesting a new code.	ईमेल सेवा व्यस्त है। नया कोड माँगने से पहले कृपया प्रतीक्षा करें।
+Email delivery could not be confirmed. Please wait before requesting a new code.	ईमेल भेजे जाने की पुष्टि नहीं हो सकी। नया कोड माँगने से पहले कृपया प्रतीक्षा करें।
+Support reference	सहायता संदर्भ
+Create Account	खाता बनाएँ
+Login	लॉग इन
+Create your account	अपना खाता बनाएँ
+Welcome back	आपका फिर से स्वागत है
+Join the SON MASALA family. Good taste starts here.	सोन मसाला परिवार से जुड़ें। अच्छे स्वाद की शुरुआत यहीं से होती है।
+Your favourite flavours are just a sign-in away.	अपने पसंदीदा स्वाद के लिए लॉग इन करें।
+ROOTED IN TRADITION. CRAFTED WITH LOVE.	परंपरा से जुड़े। प्यार से बने।
+A little spice.	थोड़े से मसाले।
+A lot of soul.	ढेर सारा अपनापन।
+Bring home the warmth of authentic Indian spices. Pure ingredients, rich aromas, and a taste that feels like home.	असली भारतीय मसालों का अपनापन घर लाएँ। शुद्ध सामग्री, भरपूर खुशबू और घर जैसा स्वाद।
+Pure ingredients	शुद्ध सामग्री
+Authentic flavours	असली स्वाद
+Made with care	देखभाल से बने
+Customer authentication	ग्राहक प्रमाणीकरण
+Discover SON MASALA	सोन मसाला को जानें
+Enter a valid email address, full name, and 10-digit Indian mobile number.	सही ईमेल पता, पूरा नाम और 10 अंकों का भारतीय मोबाइल नंबर दर्ज करें।
+Your code is still being sent. Please wait a moment and try again.	आपका कोड भेजा जा रहा है। कृपया कुछ देर बाद फिर कोशिश करें।
+New customer? Create an account	नए ग्राहक हैं? खाता बनाएँ
+Mobile ownership is not verified by email OTP.	ईमेल ओटीपी से मोबाइल नंबर का स्वामित्व सत्यापित नहीं होता है।
+EMAIL ADDRESS	ईमेल पता
+Continue with Email OTP	ईमेल ओटीपी से जारी रखें
+Continue with Mobile OTP	मोबाइल ओटीपी से जारी रखें
+Send OTP to Email	ईमेल पर ओटीपी भेजें
+Email Address	ईमेल पता
+Email	ईमेल
+Change Email Address	ईमेल पता बदलें
+Email verified. Enter your full name and mobile number to complete registration.	ईमेल सत्यापित हो गया। पंजीकरण पूरा करने के लिए अपना पूरा नाम और मोबाइल नंबर दर्ज करें।
+Your verification code has been sent to your email address.	आपके ईमेल पते पर सत्यापन कोड भेज दिया गया है।
 Product image; actual packaging may differ.	उत्पाद का चित्र; वास्तविक पैकेजिंग अलग हो सकती है।
 Product photograph pending verification.	उत्पाद के चित्र का सत्यापन बाकी है।
 Home	होम

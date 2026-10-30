@@ -36,7 +36,9 @@ export function StoreProvider({ children }) {
     if (options.clearCustomer) { authEpoch.current += 1; wishlistEpoch.current += 1; customerIdentity.current = null; setUser(null); setCartData(null); setWishlist([]); setWishlistProducts([]); setWishlistError(''); }
     const epoch = authEpoch.current;
     try {
-      const [cartResult, sessionResult] = await Promise.allSettled([getCart(), apiRequest('auth/me')]);
+      // Cart already includes the customer. Fall back to /me only if cart fails.
+      const [cartResult] = await Promise.allSettled([getCart()]);
+      const sessionResult = cartResult.status === 'fulfilled' ? { status: 'fulfilled', value: { user: cartResult.value.user } } : (await Promise.allSettled([apiRequest('auth/me')]))[0];
       if (epoch !== authEpoch.current) return null;
       const customer = sessionResult.status === 'fulfilled' ? sessionResult.value.user : cartResult.status === 'fulfilled' ? cartResult.value.user : null;
       if (customerIdentity.current !== (customer?.id || null)) { wishlistEpoch.current += 1; customerIdentity.current = customer?.id || null; setWishlist([]); setWishlistProducts([]); }

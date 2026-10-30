@@ -35,7 +35,7 @@ test('mobile registration merges guest bag and sign-in restores customer cart', 
   await page.goto('/login'); await customerSignIn(page);
   await expect(page.getByRole('heading', { name: 'Hello, Browser Shopper.' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Shopping cart, 1 items' })).toBeVisible();
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click(); await expect(page.getByRole('heading', { name: 'Welcome to SON MASALA' })).toBeVisible();
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click(); await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Shopping cart, 0 items' })).toBeVisible();
   await advanceAuthClock(61000); await customerSignIn(page);
   await expect(page.getByRole('heading', { name: 'Hello, Browser Shopper.' })).toBeVisible();

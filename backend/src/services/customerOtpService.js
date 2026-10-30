@@ -44,9 +44,9 @@ export async function sendCustomerOtp(req, { fullName, phone, channel }) {
 }
 export async function verifyCustomerCode(req, token, code) {
   const challenge = await activeCustomerChallenge(req, token);
-  const secret = await CustomerOtp.findById(challenge._id).select('+codeHash');
+  const secret = await CustomerOtp.findOneAndUpdate({ _id: challenge._id, status: 'ACTIVE', attempts: { $lt: 5 }, expiresAt: { $gt: new Date(customerNow(req)) } }, { $inc: { attempts: 1 } }, { new: true }).select('+codeHash');
+  if (!secret) throw httpError(429, 'Too many verification attempts. Please request a new code.');
   if (!equals(secret.codeHash, keyedDigest(`${challenge.id}:${code}`, req.app.locals.config))) {
-    await CustomerOtp.updateOne({ _id: challenge._id, status: 'ACTIVE' }, { $inc: { attempts: 1 } });
     throw httpError(401, 'That verification code is incorrect. Please try again.');
   }
   if (req.app.locals.config.nodeEnv === 'production' && challenge.deliverySource === 'DEVELOPMENT_PREVIEW') throw httpError(401, 'Please request a new verification code.');

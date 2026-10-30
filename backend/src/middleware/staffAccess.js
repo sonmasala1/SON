@@ -4,10 +4,10 @@ import { securityNow, audit } from '../services/staffAudit.js';
 import { httpError } from '../utils/httpError.js';
 import { allPermissions } from '../config/permissions.js';
 
-export function staffCookie(req, realm, clear = false) { return { httpOnly: true, secure: req.app.locals.config.nodeEnv === 'production', sameSite: req.app.locals.config.nodeEnv === 'production' ? 'none' : 'strict', path: '/api/v1', ...(clear ? {} : { maxAge: realm === 'owner' ? 4 * 3600000 : 8 * 3600000 }) }; }
+export function staffCookie(req, realm, clear = false) { return { httpOnly: true, secure: req.app.locals.config.nodeEnv === 'production', sameSite: req.app.locals.config.crossSiteCookies ? 'none' : 'strict', path: '/api/v1', ...(clear ? {} : { maxAge: realm === 'owner' ? 4 * 3600000 : 8 * 3600000 }) }; }
 export function staffOrigin(req, _res, next) {
   const origin = req.get('origin');
-  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && (!origin || !req.app.locals.allowedOrigins.includes(origin))) return next(httpError(403, 'The request origin is not allowed.'));
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && (!origin || !req.app.locals.allowedOrigins.includes(origin))) return next(Object.assign(httpError(403, 'The request origin is not allowed.'), { logReason: 'csrf_origin_rejected' }));
   next();
 }
 export function authenticateStaff(ownerOnly = false) {
@@ -36,6 +36,6 @@ export function authenticateStaff(ownerOnly = false) {
 }
 export function staffCsrf(req, _res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
-  next(equals(req.get('x-csrf-token'), req.csrfToken) ? null : httpError(403, 'Security verification failed. Refresh this page and try again.'));
+  next(equals(req.get('x-csrf-token'), req.csrfToken) ? null : Object.assign(httpError(403, 'Security verification failed. Refresh this page and try again.'), { logReason: 'csrf_token_rejected' }));
 }
 export function requirePermission(permission) { return async (req, _res, next) => { if (req.staff && req.staffPermissions.includes(permission)) return next(); try { await audit(req, 'STAFF_PERMISSION_DENIED', { targetId: permission, result: 'FAILURE' }); next(httpError(403, 'Your account does not have permission for this action.')); } catch (error) { next(error); } }; }

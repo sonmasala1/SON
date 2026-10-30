@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Text, LocalizedAttrs } from '@/components/LocalizedText';
-import { API_BASE_URL } from '@/lib/api';
+import { apiUrl } from '@/lib/api';
 import { useStaff } from './StaffSession';
 
 const blankProduct = () => ({
@@ -164,7 +164,7 @@ export default function ProductManagement() {
   async function exportCsv() {
     setBusy(true); setError('');
     try {
-      const response = await fetch(`${API_BASE_URL}/admin/products/export.csv`, { credentials: 'include', headers: { Accept: 'text/csv' } });
+      const response = await fetch(apiUrl('admin/products/export.csv'), { credentials: 'include', headers: { Accept: 'text/csv', 'X-Request-ID': crypto.randomUUID() } });
       if (!response.ok) {
         const data = await response.json().catch(() => null);
         throw new Error(data?.message || `CSV export failed with HTTP ${response.status}.`);

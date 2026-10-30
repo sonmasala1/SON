@@ -13,15 +13,16 @@ export async function seedDemo({ fullCatalog = false } = {}) {
     await Category.updateOne({ slug }, { $setOnInsert: { name, hindiName, slug, sort: index } }, { upsert: true });
   }
   const catalogue = fullCatalog ? demoCatalogue : demoCatalogue.slice(0, 3);
-  for (const [index, { name, hindiName, slug, pricePaise, sku, description, category, image }] of catalogue.entries()) {
-    const artwork = index < 12 ? image : `/images/products/${slug}-gallery.png`;
-    const imageCrop = index < 12 ? 'full' : 'left-third';
+  for (const { name, hindiName, slug, pricePaise, sku, description, category } of catalogue) {
+    // Test identities have no production image-manifest ownership. Use the UI placeholder.
+    const artwork = '';
+    const imageCrop = 'full';
     let product = await Product.findOne({ slug });
     if (product && !product.isDemo) { console.log(`Skipped existing non-demo product: ${slug}`); continue; }
-    if (!product) product = await Product.create({ name, hindiName, slug, description, category, isDemo: true, status: 'draft', featured: true, image: artwork, images: [artwork], packSizeOptions: ['100 g'], availablePackSizes: ['100 g'], inventoryStatus: 'known' });
+    if (!product) product = await Product.create({ name, hindiName, slug, description, category, isDemo: true, status: 'draft', featured: true, image: artwork, images: [], packSizeOptions: ['100 g'], availablePackSizes: ['100 g'], inventoryStatus: 'known' });
     // Refresh generated artwork on demo records while preserving existing prices and stock.
     product.image = artwork;
-    product.images = [artwork];
+    product.images = [];
     let variant = await ProductVariant.findOne({ sku: `DEMO-${sku}-100` });
     if (!variant) variant = await ProductVariant.create({ productId: product._id, sku: `DEMO-${sku}-100`, label: '100 g', weightGrams: 100, pricePaise, mrpPaise: pricePaise, stock: 50, isDemo: true });
     variant.image = artwork;

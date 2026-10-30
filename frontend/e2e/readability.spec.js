@@ -79,6 +79,7 @@ for (const width of [375, 768, 1440, 1920]) {
     await readable(page);
     await page.getByRole('link', { name: 'Proceed to Checkout', exact: false }).click();
     await expect(page).toHaveURL(/\/login\?next=/);
+    await page.locator('.customer-email-button').click();
     await page.locator('#customer-full-name').fill('Browser Shopper');
     await page.locator('#customer-mobile').fill('9876543210');
     const sent = page.waitForResponse(response => response.url().includes('/auth/send-otp'));

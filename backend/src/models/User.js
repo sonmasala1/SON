@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 const schema = new mongoose.Schema({
   name: { type: String, required: true, alias: 'fullName' },
   email: { type: String, lowercase: true }, phone: String,
+  pendingPhone: String,
   googleSubject: { type: String, select: false },
   emailVerifiedAt: Date, emailVerified: { type: Boolean, default: false }, emailVerificationSource: String,
   phoneVerifiedAt: Date, phoneVerified: { type: Boolean, default: false }, phoneVerificationSource: String,

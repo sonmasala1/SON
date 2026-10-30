@@ -83,7 +83,7 @@ for (const width of [320, 390, 768, 1440])
         fullPage: true,
       });
     await page.goto("/login");
-    await expect(page.getByLabel("पूरा नाम", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("ईमेल पता", { exact: true })).toBeVisible();
     await expect(
       page.getByRole("button", { name: "गूगल से आगे बढ़ें", exact: true }),
     ).toBeVisible();
@@ -98,7 +98,7 @@ for (const width of [320, 390, 768, 1440])
         fullPage: true,
       });
     await english(page);
-    await expect(page.getByLabel("FULL NAME", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("EMAIL ADDRESS", { exact: true })).toBeVisible();
     expect(errors).toEqual([]);
   });
 
@@ -236,12 +236,12 @@ test("MongoDB favourites restore across sign-out/new browser cookies and remain 
       return route.continue({ url: url.toString() });
     });
     await advanceAuthClock(61000);
-    await restored.goto("http://localhost:3000/login");
+    await restored.goto(`${process.env.E2E_BASE_URL || "http://localhost:3000"}/login`);
     await customerSignIn(restored, { name: "Ignored Name" });
     await expect(
       restored.getByRole("heading", { name: "Hello, Favourite Shopper." }),
     ).toBeVisible();
-    await restored.goto("http://localhost:3000/wishlist");
+    await restored.goto(`${process.env.E2E_BASE_URL || "http://localhost:3000"}/wishlist`);
     await expect(restored.locator(".product-card")).toHaveCount(2);
     await restored
       .getByRole("button", { name: "Remove Haldi Powder from wishlist" })
@@ -281,6 +281,7 @@ test("Hindi validation and public information pages switch back completely to En
 }) => {
   await page.goto("/login");
   await hindi(page);
+  await page.locator(".customer-email-button").click();
   await page.locator("#customer-full-name").fill("सीमा देवी");
   await page.locator("#customer-mobile").fill("9876543210");
   const sent = page.waitForResponse((response) =>

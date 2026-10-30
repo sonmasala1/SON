@@ -27,8 +27,16 @@ export default function ProductCard({ product, detail = false }) {
   const selectedImage = selectedGallery || { url: variant?.image || product.image || allImages[0], crop: variant?.imageCrop || 'full' };
   const image = !imageFailed && safeImage(selectedImage.url);
   const gallery = productGallery(product);
-  const hasPrice = variant?.unitPricePaise > 0;
+  const variantUnitPricePaise = Number.isFinite(Number(variant?.unitPricePaise))
+    ? Number(variant.unitPricePaise)
+    : Number.isFinite(Number(variant?.pricePaise))
+      ? Number(variant.pricePaise)
+      : Number.isFinite(Number(variant?.price))
+        ? Math.round(Number(variant.price) * 100)
+        : 0;
+  const hasPrice = variantUnitPricePaise > 0;
   const available = product.status === 'published' && variant?.stock > 0 && hasPrice;
+  const isDraft = product.status === 'draft';
   const hasProductDetails = product.ingredients?.length || product.rawSpiceIngredients?.length
     || product.botanicalName || product.origin || product.usageInstructions || product.storageInstructions
     || product.shelfLife || product.allergenInformation
@@ -152,18 +160,18 @@ export default function ProductCard({ product, detail = false }) {
         {/* Price row */}
         <div className="price-row">
           <div>
-            <strong><Text>{hasPrice ? moneyPaise(variant.unitPricePaise) : 'Price coming soon'}</Text></strong>
+            <strong><Text>{hasPrice ? moneyPaise(variantUnitPricePaise) : 'Price coming soon'}</Text></strong>
             {variant?.mrpPaise > variant?.unitPricePaise && <del className="mrp"><Text>{moneyPaise(variant.mrpPaise)}</Text></del>}
           </div>
           <span className={`stock-badge${available ? ' in-stock' : ' no-stock'}`}>
-            <Text>{available ? 'In stock' : !hasPrice ? 'Coming soon' : 'Out of stock'}</Text>
+            <Text>{isDraft ? 'Coming Soon' : available ? 'In stock' : !hasPrice ? 'Coming soon' : 'Out of stock'}</Text>
           </span>
         </div>
 
         {/* Actions */}
         <div className="product-actions">
           <button className="button" disabled={!available || busy || loading} onClick={() => addToCart(product, variant)}>
-            <Icon name="bag" size={24} /><Text>{available ? 'Add to Cart' : 'Unavailable'}</Text>
+            <Icon name="bag" size={24} /><Text>{isDraft ? 'Coming Soon' : available ? 'Add to Cart' : 'Unavailable'}</Text>
           </button>
           <button className="button button-outline" disabled={!available || busy || loading} onClick={buyNow}>
             <Text>Buy Now</Text>

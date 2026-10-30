@@ -12,7 +12,7 @@ import { httpError } from '../utils/httpError.js';
 export const GOOGLE_FLOW_COOKIE = 'son_google_flow';
 export const GOOGLE_FLOW_MS = 10 * 60000;
 const randomToken = () => randomBytes(32).toString('base64url');
-export function googleFlowCookie(req, clear = false) { return { httpOnly: true, secure: req.app.locals.config.nodeEnv === 'production', sameSite: req.app.locals.config.nodeEnv === 'production' ? 'none' : 'lax', path: '/api/v1/auth/google', ...clear ? {} : { maxAge: GOOGLE_FLOW_MS } }; }
+export function googleFlowCookie(req, clear = false) { return { httpOnly: true, secure: req.app.locals.config.nodeEnv === 'production', sameSite: req.app.locals.config.crossSiteCookies ? 'none' : 'lax', path: '/api/v1/auth/google', ...clear ? {} : { maxAge: GOOGLE_FLOW_MS } }; }
 export function customerReturnTo(value) {
   // eslint-disable-next-line no-control-regex -- Control characters are intentionally rejected in redirect destinations.
   if (typeof value !== 'string' || value.length > 2048 || !value.startsWith('/') || value.startsWith('//') || /[\\\u0000-\u001f\u007f]/u.test(value)) return '/account';
@@ -22,10 +22,10 @@ export function customerReturnTo(value) {
 }
 export function googleConfiguration(req) {
   const config = req.app.locals.config;
-  if (!/^[\w.-]+\.apps\.googleusercontent\.com$/.test(config.googleClientId || '') || !config.googleClientSecret) throw httpError(503, 'Google sign-in is currently unavailable. Please use mobile OTP.');
+  if (!/^[\w.-]+\.apps\.googleusercontent\.com$/.test(config.googleClientId || '') || !config.googleClientSecret) throw httpError(503, 'Google sign-in is currently unavailable. Please use email OTP.');
   let redirect;
-  try { redirect = new URL(config.googleRedirectUri); } catch { throw httpError(503, 'Google sign-in is currently unavailable. Please use mobile OTP.'); }
-  if (redirect.pathname !== '/api/v1/auth/google/callback' || redirect.search || redirect.hash || redirect.username || redirect.password || (redirect.protocol !== 'https:' && !(config.nodeEnv !== 'production' && redirect.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(redirect.hostname)))) throw httpError(503, 'Google sign-in is currently unavailable. Please use mobile OTP.');
+  try { redirect = new URL(config.googleRedirectUri); } catch { throw httpError(503, 'Google sign-in is currently unavailable. Please use email OTP.'); }
+  if (redirect.pathname !== '/api/v1/auth/google/callback' || redirect.search || redirect.hash || redirect.username || redirect.password || (redirect.protocol !== 'https:' && !(config.nodeEnv !== 'production' && redirect.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(redirect.hostname)))) throw httpError(503, 'Google sign-in is currently unavailable. Please use email OTP.');
   return { clientId: config.googleClientId, clientSecret: config.googleClientSecret, redirectUri: redirect.toString() };
 }
 export function googleClient(req, settings) {
@@ -67,13 +67,11 @@ export async function signInGoogleCustomer(req, identity) {
     try {
       await mongoose.connection.transaction(async session => {
         let user = await User.findOne({ googleSubject: identity.subject }).session(session);
+        req.customerAuthAction = user ? 'login' : 'registration';
         if (!user) {
           user = await User.findOne({ email: identity.email }).session(session);
           if (user) {
-            user.googleSubject = identity.subject;
-            if (!user.name || user.name === 'SON MASALA Customer') user.name = identity.name;
-            user.emailVerified = true;
-            user.emailVerifiedAt = new Date(customerNow(req));
+            throw Object.assign(httpError(409, 'Sign in with your existing method. Account linking requires explicit verification.'), { googleReason: 'account_link_required' });
           } else {
             [user] = await User.create([{
               name: identity.name,

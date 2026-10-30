@@ -12,7 +12,7 @@ export async function sendVerification(req, fields, contact, channel) {
   const code = String(randomInt(1000000)).padStart(6, '0');
   await AdminChallenge.updateOne({ _id: challenge._id }, { codeHash: keyedDigest(`${challenge.id}:${code}`, req.app.locals.config) });
   try {
-    const source = await deliver(req, { channel, contact, subject: 'Your SON MASALA verification code', text: `Your SON MASALA verification code is ${code}. It expires in 5 minutes. Do not share this code.` });
+    const source = await deliver(req, { channel, contact, subject: 'Your SON MASALA verification code', authenticationCode: code, text: `Your SON MASALA verification code is ${code}. It expires in 5 minutes. Do not share this code.` });
     await AdminChallenge.updateOne({ _id: challenge._id }, { deliverySource: source });
     return { challengeToken: token, message: source === 'DEVELOPMENT_PREVIEW' ? 'Development preview only. No message was sent.' : 'A verification code has been sent.', ...(source === 'DEVELOPMENT_PREVIEW' ? { developmentCode: code } : {}) };
   } catch (error) { await AdminChallenge.deleteOne({ _id: challenge._id }); throw error; }

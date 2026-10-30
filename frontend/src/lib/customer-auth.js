@@ -2,11 +2,11 @@ export const normalizeName = value => value.trim().normalize('NFC').replace(/\s+
 export const validName = value => { const name = normalizeName(value); return name.length >= 2 && name.length <= 100 && !/[\u0000-\u001f\u007f]/u.test(name); };
 export const validMobile = value => /^[6-9]\d{9}$/.test(value);
 const googleLoginErrors = {
-  cancelled: 'Google sign-in was cancelled. You can try again or use mobile OTP.',
+  cancelled: 'Google sign-in was cancelled. You can try again or use email OTP.',
   state: 'Your Google sign-in request expired or could not be verified. Please try again.',
-  account_link_required: 'Use mobile OTP for your existing account. Google sign-in cannot link it automatically.',
+  account_link_required: 'Use your existing email or mobile OTP method. Google sign-in cannot link accounts automatically.',
   account_unavailable: 'This account is unavailable. Please contact support.',
-  failed: 'We couldn’t complete Google sign-in. Please try again or use mobile OTP.',
+  failed: 'We couldn’t complete Google sign-in. Please try again or use email OTP.',
   database_unavailable: 'Database is temporarily busy. Please try signing in again in a moment.',
 };
 export const googleLoginError = reason => Object.hasOwn(googleLoginErrors, reason) ? googleLoginErrors[reason] : '';

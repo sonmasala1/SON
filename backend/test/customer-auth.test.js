@@ -188,7 +188,7 @@ test('passwordless customer identity, OTP delivery, persistence, and private sho
     assert.ok(result.headers.getSetCookie().some(cookie => cookie.startsWith('son_customer_session=') && cookie.includes('Max-Age=60')));
   });
   await t.test('production cookies are Secure, preview credentials never authenticate, and per-IP limits apply', async () => {
-    const productionApp = createApp({ config: { ...config, deliveryAdapter: async message => messages.push(message), twilioSid: null, twilioToken: null, smtpHost: null } });
+    const productionApp = createApp({ config: { ...config, deliveryAdapter: async message => messages.push(message), twilioSid: null, twilioToken: null, brevoApiKey: null } });
     const productionServer = productionApp.listen(0, '127.0.0.1'); await new Promise(resolve => productionServer.once('listening', resolve));
     try {
       const url = `http://127.0.0.1:${productionServer.address().port}/api/v1`;

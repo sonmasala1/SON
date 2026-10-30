@@ -5,6 +5,7 @@ import { httpError } from '../utils/httpError.js';
 import { cartTotals } from '../utils/money.js';
 import { demoAllowed } from '../middleware/session.js';
 import Order from '../models/Order.js';
+import { logEvent } from './logger.js';
 
 export async function getCart(req, session = null) {
   let cart = await Cart.findOne({ ownerKey: req.ownerKey }).session(session);
@@ -34,7 +35,9 @@ export async function serializeCart(req, cart, session = null) {
     }
   }
   const { deliveryChargePaise, freeDeliveryThresholdPaise } = req.app.locals.config;
-  return { id: cart.id, version: cart.__v, items, count: items.reduce((sum, item) => sum + item.quantity, 0), totals: cartTotals(items, deliveryChargePaise, freeDeliveryThresholdPaise), valid: items.length > 0 && items.every(item => item.available), demoCheckoutEnabled: demoAllowed(req), deliveryChargePaise, freeDeliveryThresholdPaise };
+  const totals = cartTotals(items, deliveryChargePaise, freeDeliveryThresholdPaise);
+  if (!session) logEvent('INFO', 'cart.calculated', { ...totals, itemCount: items.length }, req);
+  return { id: cart.id, version: cart.__v, items, count: items.reduce((sum, item) => sum + item.quantity, 0), totals, valid: items.length > 0 && items.every(item => item.available), demoCheckoutEnabled: demoAllowed(req), deliveryChargePaise, freeDeliveryThresholdPaise };
 }
 export async function mutateCart(req, change) {
   for (let attempt = 0; attempt < 4; attempt++) {

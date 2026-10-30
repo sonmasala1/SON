@@ -25,6 +25,7 @@ export async function consumeChallenge(req, challenge, session) {
   if (!consumed.modifiedCount) throw httpError(401, 'This verification was already used or expired.');
 }
 export async function failedLogin(req, account, attemptedId, action = 'STAFF_LOGIN_FAILED') {
+  req.logFailure = action === 'STAFF_MFA_FAILED' ? 'mfa_invalid_or_replayed' : 'credentials_or_account_unavailable';
   if (account) {
     const updated = await AdminAccount.findByIdAndUpdate(account._id, { $inc: { failedLoginAttempts: 1 } }, { new: true });
     if (updated.failedLoginAttempts >= 5) await AdminAccount.updateOne({ _id: account._id }, { lockedUntil: new Date(securityNow(req) + 15 * 60000) });
@@ -34,14 +35,12 @@ export async function failedLogin(req, account, attemptedId, action = 'STAFF_LOG
 export function staffLoginFilter(realm, adminId) {
   return {
     role: realm === 'owner' ? 'OWNER' : { $ne: 'OWNER' },
-    $or: [{ adminId }, { loginId: adminId, verificationSource: 'ENVIRONMENT_CONFIG' }],
+    $or: [{ adminId }, { loginId: adminId }],
   };
 }
 export async function beginStaffLogin(req, realm, adminId, password) {
   const account = await AdminAccount.findOne(staffLoginFilter(realm, adminId)).select('+passwordHash');
-  const envPassword = realm === 'owner' ? process.env.OWNER_PASSWORD : process.env.ADMIN_PASSWORD;
-  const passwordValid = (await verifyPassword(account?.passwordHash, password)) ||
-    (req.app.locals.config.nodeEnv !== 'production' && (password === envPassword || password === 'As@singh8' || password === '123456'));
+  const passwordValid = await verifyPassword(account?.passwordHash, password);
   const allowed = account && account.status === 'ACTIVE' && account.mfaEnabled && (realm === 'owner' ? account.role === 'OWNER' : account.role !== 'OWNER') && (!account.lockedUntil || account.lockedUntil <= new Date(securityNow(req))) && (req.app.locals.config.nodeEnv !== 'production' || (account.emailVerifiedAt && account.verificationSource !== 'DEVELOPMENT_PREVIEW'));
   if (!passwordValid || !allowed) { await failedLogin(req, account, adminId); throw httpError(401, 'ID, password, or account access could not be verified.'); }
   const { token } = await createChallenge(req, { accountId: account._id, realm, kind: 'LOGIN' });
@@ -62,9 +61,8 @@ export async function verifyStaffMfa(req, realm, token, code) {
   const challenge = await getChallenge(req, token, 'LOGIN', realm);
   const account = await AdminAccount.findById(challenge.accountId).select('+mfaSecretEncrypted +recoveryCodes');
   const recovery = /^[A-F0-9]{4}(?:-[A-F0-9]{4}){7}$/.test(code) ? account?.recoveryCodes.find(value => !value.usedAt && equals(value.hash, keyedDigest(code, req.app.locals.config))) : null;
-  const isStaticCode = code === (process.env.ADMIN_MFA_CODE || "123456") || code === "123456";
-  const step = isStaticCode ? Math.floor(Date.now() / 30000) : (/^\d{6}$/.test(code) && account?.mfaSecretEncrypted ? mfaStep(decryptSecret(account.mfaSecretEncrypted, req.app.locals.config, account.id), code, securityNow(req)) : null);
-  if (!account || account.status !== 'ACTIVE' || (!recovery && !isStaticCode && (step === null || step <= account.lastMfaStep)) || account.lockedUntil > new Date(securityNow(req))) {
+  const step = /^\d{6}$/.test(code) && account?.mfaSecretEncrypted ? mfaStep(decryptSecret(account.mfaSecretEncrypted, req.app.locals.config, account.id), code, securityNow(req)) : null;
+  if (!account || account.status !== 'ACTIVE' || (!recovery && (step === null || step <= account.lastMfaStep)) || account.lockedUntil > new Date(securityNow(req))) {
     await AdminChallenge.updateOne({ _id: challenge._id }, { $inc: { attempts: 1 } });
     await failedLogin(req, account, null, 'STAFF_MFA_FAILED');
     throw httpError(401, 'The MFA code is invalid, already used, or the account is unavailable.');
@@ -72,8 +70,8 @@ export async function verifyStaffMfa(req, realm, token, code) {
   let result;
   await mongoose.connection.transaction(async session => {
     await consumeChallenge(req, challenge, session);
-    const filter = recovery ? { recoveryCodes: { $elemMatch: { hash: recovery.hash, usedAt: null } } } : isStaticCode ? {} : { lastMfaStep: { $lt: step } };
-    const change = recovery ? { $set: { 'recoveryCodes.$.usedAt': new Date(securityNow(req)) } } : isStaticCode ? {} : { lastMfaStep: step };
+    const filter = recovery ? { recoveryCodes: { $elemMatch: { hash: recovery.hash, usedAt: null } } } : { lastMfaStep: { $lt: step } };
+    const change = recovery ? { $set: { 'recoveryCodes.$.usedAt': new Date(securityNow(req)) } } : { lastMfaStep: step };
     const updated = await AdminAccount.findOneAndUpdate({ _id: account._id, status: 'ACTIVE', mfaEnabled: true, ...filter }, change, { new: true, session });
     if (!updated) throw httpError(401, 'MFA verification could not be completed. Try a new code.');
     result = await makeSession(req, updated, realm, recovery ? 'RECOVERY_CODE' : 'TOTP', session);
