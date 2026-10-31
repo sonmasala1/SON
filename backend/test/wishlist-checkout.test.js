@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import { randomBytes } from 'node:crypto';
 import { initializeModels } from '../src/config/models.js';
 import { createApp } from '../src/app.js';
-import { seedDemo } from '../scripts/seed-demo.js';
+import { createCommerceProduct } from './helpers/commerceFixtures.js';
 import Wishlist from '../src/models/Wishlist.js';
 import User from '../src/models/User.js';
 import ProductVariant from '../src/models/ProductVariant.js';
@@ -19,7 +19,7 @@ test('private MongoDB favourites and authenticated checkout preserve guest shopp
   const dbName = `son_masala_test_wishlist_${Date.now()}_${process.pid}`;
   await mongoose.connect(testUri, { dbName });
   t.after(async () => { if (mongoose.connection.name === dbName && dbName.startsWith('son_masala_test_wishlist_')) await mongoose.connection.dropDatabase(); await mongoose.disconnect(); });
-  await initializeModels(); await seedDemo();
+  await initializeModels(); await createCommerceProduct('haldi-powder', { stock: 50, pricePaise: 9900 });
   const messages = []; let now = Date.now();
   const config = { nodeEnv: 'test', demoEnabled: true, mfaEncryptionKey: randomBytes(32).toString('base64'), clock: () => now, deliveryAdapter: async message => messages.push(message) };
   const server = createApp({ config }).listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
@@ -44,12 +44,12 @@ test('private MongoDB favourites and authenticated checkout preserve guest shopp
   const product = (await guest('/products')).body.products.find(product => product.slug === 'haldi-powder'), variant = product.variants[0];
   const delivery = { fullName: 'Private Shopper', email: 'private@example.com', phone: '9876543210', address: '123 Synthetic Street', city: 'Jaipur', state: 'Rajasthan', pincode: '302001' };
   let before, user;
-  await t.test('guests browse and persist quantities but cannot read/write wishlist or create/preview/settle orders', async () => {
+  await t.test('guests browse and persist quantities but cannot read/write wishlist or create or preview orders', async () => {
     assert.equal((await guest('/products')).status, 200);
     const added = await guest('/cart/items', { productId: product._id, variantId: variant._id, quantity: 1 });
     const updated = await guest(`/cart/items/${added.body.cart.items[0]._id}`, { quantity: 2 }, 'PATCH'); before = updated.body.cart;
     assert.equal((await actor([...guest.jar])('/cart')).body.cart.count, 2);
-    for (const [path, body, method] of [['/wishlist', undefined, 'GET'], ['/wishlist/haldi-powder', {}, 'PUT'], ['/wishlist/haldi-powder', {}, 'DELETE'], ['/checkout/preview', { delivery }], ['/demo-payments', { action: 'create', delivery, requestKey: crypto.randomUUID() }], ['/demo-payments', { action: 'simulate', orderId: 'DEMO-' + crypto.randomUUID().toUpperCase(), outcome: 'PAID_DEMO' }]]) assert.equal((await guest(path, body, method)).status, 401);
+    for (const [path, body, method] of [['/wishlist', undefined, 'GET'], ['/wishlist/haldi-powder', {}, 'PUT'], ['/wishlist/haldi-powder', {}, 'DELETE'], ['/checkout/preview', { delivery }], ['/checkout/place', { delivery, requestKey: crypto.randomUUID() }]]) assert.equal((await guest(path, body, method)).status, 401);
     assert.equal(await Order.countDocuments(), 0); assert.equal(await Wishlist.countDocuments(), 0);
   });
   await t.test('login keeps guest quantities/totals, and repeated wishlist adds are atomic and idempotent', async () => {
@@ -69,22 +69,22 @@ test('private MongoDB favourites and authenticated checkout preserve guest shopp
     await login(guest, '+919876543210'); assert.equal((await guest('/wishlist')).body.wishlist.slugs.length, 1);
     assert.equal((await guest('/cart')).body.cart.count, 2);
   });
-  await t.test('checkout revalidates current price/stock and paid orders remain private to the customer', async () => {
+  await t.test('checkout revalidates current price/stock and pending orders remain private to the customer', async () => {
     await ProductVariant.updateOne({ _id: variant._id }, { pricePaise: 10900 });
     const preview = await guest('/checkout/preview', { delivery }); assert.equal(preview.body.cart.totals.totalPaise, 26700);
     await ProductVariant.updateOne({ _id: variant._id }, { stock: 1 });
-    const input = { action: 'create', delivery, requestKey: crypto.randomUUID() };
-    assert.equal((await guest('/demo-payments', input)).status, 409); assert.equal(await Order.countDocuments(), 0);
+    const input = { delivery, requestKey: crypto.randomUUID() };
+    assert.equal((await guest('/checkout/place', input)).status, 409); assert.equal(await Order.countDocuments(), 0);
     await ProductVariant.updateOne({ _id: variant._id }, { stock: 50 });
-    const created = await guest('/demo-payments', input); assert.equal(created.status, 200); assert.equal(created.body.order.totals.totalPaise, 26700);
+    const created = await guest('/checkout/place', input); assert.equal(created.status, 201); assert.equal(created.body.order.totals.totalPaise, 26700);
     assert.equal((await other(`/orders/${created.body.order.id}`)).status, 404);
-    assert.equal((await guest('/demo-payments', { action: 'simulate', orderId: created.body.order.id, outcome: 'PAID_DEMO' })).body.order.paymentStatus, 'PAID_DEMO');
+    assert.equal(created.body.order.paymentStatus, 'PENDING');
     assert.equal((await guest('/cart')).body.cart.count, 0);
   });
   await t.test('removal persists; suspension denies favourites and checkout; customer cookies never authorize staff', async () => {
     assert.equal((await guest('/wishlist/haldi-powder', {}, 'DELETE')).status, 200);
     assert.deepEqual((await actor([...guest.jar])('/wishlist')).body.wishlist.slugs, []);
-    for (const path of ['/admin/dashboard', '/owner/admins']) assert.equal((await guest(path)).status, 403);
+    for (const path of ['/admin/dashboard']) assert.equal((await guest(path)).status, 403);
     await User.updateOne({ _id: user.id }, { accountStatus: 'SUSPENDED' });
     assert.equal((await guest('/wishlist')).status, 401); assert.equal((await guest('/checkout/preview', { delivery })).status, 401);
   });

@@ -17,7 +17,6 @@ const schema = z.object({
   REDIS_URL: z.string().url().optional(),
   MONGODB_DNS_SERVERS: z.string().optional(),
   EMAIL_PROVIDER: z.enum(['brevo']).default('brevo'),
-  ENABLE_DEMO_CHECKOUT: z.enum(['true', 'false']).default('false'),
   DELIVERY_CHARGE_PAISE: z.coerce.number().int().min(0).default(4900),
   FREE_DELIVERY_THRESHOLD_PAISE: z.coerce.number().int().min(0).default(49900),
 });
@@ -30,7 +29,6 @@ export function getEnv() {
     dns.setServers(servers);
   }
   if (env.NODE_ENV === 'production') {
-    if (env.ENABLE_DEMO_CHECKOUT !== 'false') throw new Error('Demo checkout must be disabled in production.');
     const origin = new URL(process.env.STAFF_APP_ORIGIN || 'https://son-dusky.vercel.app');
     const rpId = process.env.ADMIN_WEBAUTHN_RP_ID || origin.hostname;
     if (origin.protocol !== 'https:' || !(origin.hostname === rpId || origin.hostname.endsWith(`.${rpId}`)) || Buffer.from(process.env.ADMIN_MFA_ENCRYPTION_KEY || '', 'base64').length !== 32) throw new Error('Production staff security requires an HTTPS origin, a matching RP ID, and a 32-byte encryption key.');

@@ -69,6 +69,7 @@ export default function ProductManagement() {
       price: variant.price ?? '', mrp: variant.mrp ?? '', stock: variant.stock ?? 0,
       image: variant.image || '', imageCrop: variant.imageCrop || 'full',
     }));
+    editable.expectedVersion = product.__v;
     setForm(editable);
     setCompositionText(JSON.stringify(editable.ingredientComposition || []));
     setNotice('');

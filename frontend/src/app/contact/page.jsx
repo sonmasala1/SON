@@ -53,7 +53,7 @@ export default function ContactPage() {
         <p className="notice-box">
           <Text>
             {
-              "The email address and phone number shown here are sample contact details."
+              "Contact us for help with your order, payment or shipment."
             }
           </Text>
         </p>

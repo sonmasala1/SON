@@ -83,9 +83,6 @@ export default function Footer() {
             <Icon name="pin" />
             <Text>{" Katwariya, Post- Oinimishra, Robertsganj, Sonbhadra, Uttar Pradesh, 231216"}</Text>
           </p>
-          <small className="sample-label">
-            <Text>{"Sample email and phone · to be updated"}</Text>
-          </small>
         </div>
       </div>
       <div className="wrap footer-bottom">

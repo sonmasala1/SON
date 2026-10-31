@@ -10,7 +10,7 @@ const schema = new mongoose.Schema({
   paymentStatus: { type: String, enum: ['PENDING', 'PAID', 'PAID_DEMO', 'FAILED', 'CANCELLED', 'REFUND_PENDING'], default: 'PENDING' },
   fulfillmentStatus: { type: String, enum: ['PLACED', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'NEW'], default: 'PLACED' },
   isDemo: { type: Boolean, default: false, immutable: true },
-  items: [{ productId: mongoose.Schema.Types.ObjectId, variantId: mongoose.Schema.Types.ObjectId, name: String, hindiName: String, label: String, sku: String, image: String, quantity: Number, unitPricePaise: Number, lineTotalPaise: Number }],
+  items: [{ productId: mongoose.Schema.Types.ObjectId, variantId: mongoose.Schema.Types.ObjectId, name: String, hindiName: String, label: String, sku: String, image: String, imageCrop: String, quantity: Number, unitPricePaise: Number, lineTotalPaise: Number }],
   totals: { subtotalPaise: Number, discountPaise: Number, deliveryPaise: Number, totalPaise: Number },
   delivery: { fullName: String, email: String, phone: String, address: String, city: String, state: String, pincode: String },
   expiresAt: { type: Date, required: false, index: true },

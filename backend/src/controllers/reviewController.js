@@ -5,7 +5,6 @@ import Order from '../models/Order.js';
 import { reviewInput, objectId, parse } from '../validators/commerce.js';
 import { httpError } from '../utils/httpError.js';
 import { publishedFilter } from '../services/productService.js';
-import { demoAllowed } from '../middleware/session.js';
 import mongoose from 'mongoose';
 import { audit } from '../services/staffAudit.js';
 
@@ -13,7 +12,7 @@ export async function getReviews(req, res, next) {
   try {
     const filter = { approved: true };
     if (req.query.productId) filter.productId = parse(objectId, req.query.productId);
-    const visibleProducts = await Product.distinct('_id', publishedFilter(demoAllowed(req)));
+    const visibleProducts = await Product.distinct('_id', publishedFilter(false, false));
     filter.productId = filter.productId ? { $in: visibleProducts.filter(id => String(id) === filter.productId) } : { $in: visibleProducts };
     const reviews = await Review.find(filter).select('displayName rating comment productId createdAt verifiedPurchase').populate('productId', 'name hindiName slug').sort({ createdAt: -1 }).limit(30).lean();
     res.set('Cache-Control', 'no-store').json({ success: true, reviews });
@@ -22,7 +21,7 @@ export async function getReviews(req, res, next) {
 export async function createReview(req, res, next) {
   try {
     const input = parse(reviewInput, req.body);
-    if (!await Product.exists({ ...publishedFilter(demoAllowed(req)), _id: input.productId })) throw httpError(404, 'Product not found.');
+    if (!await Product.exists({ ...publishedFilter(false, false), _id: input.productId })) throw httpError(404, 'Product not found.');
     // Demo orders never qualify for a verified purchase badge.
     const verifiedPurchase = !!await Order.exists({ userId: req.user._id, isDemo: false, paymentStatus: 'PAID', 'items.productId': input.productId });
     const review = await Review.create({ ...input, userId: req.user._id, approved: false, verifiedPurchase });

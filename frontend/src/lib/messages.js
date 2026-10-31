@@ -1,6 +1,16 @@
 // English source phrases are stable message keys. Keep translations here rather than in page components.
 // Names, addresses, contact details, SKUs and user-written reviews remain as authored.
 const entries = `
+Place Order — Pay Later	ऑर्डर करें — भुगतान बाद में
+Your order has been placed successfully!	आपका ऑर्डर सफलतापूर्वक दर्ज हो गया है!
+Thank you for shopping with SON MASALA. Our team will contact you shortly to arrange payment and shipment.	SON MASALA से खरीदारी के लिए धन्यवाद। भुगतान और डिलीवरी की व्यवस्था के लिए हमारी टीम जल्द आपसे संपर्क करेगी।
+Payment Status	भुगतान की स्थिति
+Order Status	ऑर्डर की स्थिति
+Pending	लंबित
+Placed	दर्ज
+Your products	आपके उत्पाद
+Payment mode: Pay Later	भुगतान: बाद में
+Cancel order	ऑर्डर रद्द करें
 Preparing your checkout…	चेकआउट तैयार किया जा रहा है…
 Add a spice before starting checkout.	चेकआउट शुरू करने से पहले कोई मसाला जोड़ें।
 Review your order	अपने ऑर्डर की समीक्षा करें
@@ -152,12 +162,9 @@ YOUR BAG, ALL ADDED UP	आपके बैग का पूरा हिसा�
 Order summary	ऑर्डर का सारांश
 Subtotal	उप-योग
 Discount	छूट
-Demo delivery	नमूना डिलीवरी
 Delivery preview	डिलीवरी का अनुमान
 Free	मुफ़्त
 Total	कुल
-DEMO	नमूना
-These are demonstration prices and delivery charges.	ये कीमतें और डिलीवरी शुल्क केवल परीक्षण के लिए हैं।
 Proceed to Checkout	चेकआउट पर जाएँ
 Please adjust unavailable items before checkout.	चेकआउट से पहले अनुपलब्ध उत्पादों की मात्रा बदलें।
 Checkout is not currently available.	चेकआउट अभी उपलब्ध नहीं है।
@@ -181,24 +188,17 @@ Sign out other devices	अन्य डिवाइस से लॉग आउ�
 Your orders	आपके ऑर्डर
 Loading your orders…	आपके ऑर्डर लोड हो रहे हैं…
 You haven’t placed any orders yet.	आपने अभी कोई ऑर्डर नहीं किया है।
-Demo order ·	नमूना ऑर्डर ·
 A SAFE TEST OF THE SHOPPING EXPERIENCE	खरीदारी का सुरक्षित परीक्षण
 Checkout	चेकआउट
-Preparing your demo checkout…	आपका नमूना चेकआउट तैयार हो रहा है…
 Your bag is empty.	आपका बैग खाली है।
-Add a spice before starting demo checkout.	नमूना चेकआउट शुरू करने से पहले कोई मसाला जोड़ें।
 Let’s review your shopping bag.	आइए आपका शॉपिंग बैग जाँचें।
 Please adjust unavailable quantities before checkout.	चेकआउट से पहले अनुपलब्ध मात्राएँ बदलें।
-Demo checkout is unavailable in this environment.	यहाँ नमूना चेकआउट उपलब्ध नहीं है।
 Back to Cart	कार्ट पर वापस जाएँ
 Checkout progress	चेकआउट की प्रगति
 Shopping Cart	शॉपिंग कार्ट
 Delivery Details	डिलीवरी का विवरण
 Order Review	ऑर्डर की समीक्षा
-Demo Payment	नमूना भुगतान
 Confirmation	पुष्टि
-DEMO CHECKOUT	नमूना चेकआउट
-Use sample delivery details. This is a test order and no real shipment will be created.	नमूना डिलीवरी विवरण भरें। यह परीक्षण ऑर्डर है और कोई वास्तविक शिपमेंट नहीं बनाया जाएगा।
 STEP 2 · WHERE WOULD IT GO?	चरण 2 · डिलीवरी कहाँ होगी?
 Delivery details	डिलीवरी का विवरण
 Full name	पूरा नाम
@@ -216,39 +216,17 @@ Review Order	ऑर्डर की समीक्षा करें
 Your bag	आपका बैग
 Totals are checked again by the store before an order is created.	ऑर्डर बनाने से पहले कुल राशि दोबारा जाँची जाती है।
 STEP 3 · ONE LAST LOOK	चरण 3 · एक बार और जाँचें
-Review your demo order	अपने नमूना ऑर्डर की समीक्षा करें
 · Quantity	· मात्रा
 Edit delivery details	डिलीवरी विवरण बदलें
-Demo order total	नमूना ऑर्डर का कुल
-Reserving your demo order…	आपके नमूना ऑर्डर का स्टॉक आरक्षित हो रहा है…
-Continue to Demo Payment	नमूना भुगतान पर जाएँ
-Demo stock is reserved for 10 minutes. No real payment is collected.	नमूना स्टॉक 10 मिनट के लिए आरक्षित रहता है। कोई वास्तविक भुगतान नहीं लिया जाता।
 STEP 4 · CHOOSE A TEST OUTCOME	चरण 4 · परीक्षण का परिणाम चुनें
-DEMO PAYMENT — NO REAL MONEY WILL BE CHARGED	नमूना भुगतान — कोई वास्तविक राशि नहीं ली जाएगी
 No card number, CVV, OTP, banking PIN, or UPI PIN is required.	कार्ड नंबर, सीवीवी, ओटीपी, बैंकिंग पिन या यूपीआई पिन की ज़रूरत नहीं है।
-Demo Order ID	नमूना ऑर्डर आईडी
 Simulate Successful Payment	सफल भुगतान का परीक्षण करें
 Simulate Failed Payment	असफल भुगतान का परीक्षण करें
 Simulate Cancelled Payment	रद्द भुगतान का परीक्षण करें
-Saving the demo payment result…	नमूना भुगतान का परिणाम सहेजा जा रहा है…
 The result is saved to the test database only. No shipment, invoice, or customer payment notification will be triggered.	परिणाम केवल परीक्षण डेटाबेस में सहेजा जाएगा। कोई शिपमेंट, चालान या भुगतान सूचना नहीं भेजी जाएगी।
-We couldn’t open this demo order.	यह नमूना ऑर्डर खुल नहीं पाया।
-Loading your demo order…	आपका नमूना ऑर्डर लोड हो रहा है…
-Your Demo Order Has Been Placed!	आपका नमूना ऑर्डर हो गया है!
-Demo payment failed.	नमूना भुगतान असफल रहा।
-Demo payment cancelled.	नमूना भुगतान रद्द हो गया।
-Your demo payment is pending.	आपका नमूना भुगतान लंबित है।
-STEP 5 · DEMO CONFIRMATION	चरण 5 · नमूना ऑर्डर की पुष्टि
-DEMO PAYMENT RESULT	नमूना भुगतान का परिणाम
-You’ve completed a demonstration order. No real money was charged and no delivery will be made.	आपका परीक्षण ऑर्डर पूरा हुआ। कोई वास्तविक राशि नहीं ली गई और कोई डिलीवरी नहीं की जाएगी।
 No money was charged. Your shopping bag is available if you’d like to try again.	कोई राशि नहीं ली गई। दोबारा प्रयास करने के लिए आपका शॉपिंग बैग उपलब्ध है।
-Your demo items	आपके नमूना उत्पाद
-Demo total	नमूना कुल
 Payment mode:	भुगतान का तरीका:
-Return to demo payment	नमूना भुगतान पर वापस जाएँ
 Return to your bag	अपने बैग पर वापस जाएँ
-PAID_DEMO	नमूना भुगतान सफल
-PAID DEMO	नमूना भुगतान सफल
 PENDING	लंबित
 FAILED	असफल
 CANCELLED	रद्द
@@ -332,15 +310,10 @@ Find our kitchen	हमारा पता देखें
 The email address and phone number shown here are sample contact details.	यहाँ दिखाए गए ईमेल पते और फ़ोन नंबर नमूना संपर्क विवरण हैं।
 GOOD TO KNOW	ज़रूरी जानकारी
 Store information.	दुकान की जानकारी।
-Demo ordering	नमूना ऑर्डर
-The development store supports demo checkout only. No real money is charged, no invoice is issued, and no shipment is booked. Please use sample delivery details.	इस परीक्षण दुकान में केवल नमूना चेकआउट उपलब्ध है। नमूना चिह्न वाले उत्पादों की कीमत और स्टॉक परीक्षण के लिए हैं। कोई वास्तविक राशि, चालान या शिपमेंट नहीं होगा। कृपया नमूना डिलीवरी विवरण भरें।
-Delivery charges and discounts are calculated by the backend and displayed in your bag and order review. The current demo delivery charge is ₹49, with free demo delivery from ₹499. Live delivery coverage, prices, and return terms must be configured before real checkout is introduced.	डिलीवरी शुल्क और छूट की गणना सर्वर पर होती है और बैग तथा ऑर्डर समीक्षा में दिखती है। नमूना डिलीवरी शुल्क ₹49 है और ₹499 से नमूना डिलीवरी मुफ़्त है। वास्तविक बिक्री से पहले डिलीवरी क्षेत्र, कीमतें और वापसी की शर्तें तय करनी होंगी।
 Your shopping bag and account	आपका शॉपिंग बैग और खाता
 Guest shopping bags are stored on the server and identified by a persistent browser cookie. Customer bags are saved to your account. Your guest bag is merged when you sign in. Secure session cookies cannot be read by page scripts.	अतिथि का बैग सर्वर पर सहेजा जाता है और सुरक्षित ब्राउज़र कुकी से पहचाना जाता है। ग्राहक का बैग उसके खाते में सहेजा जाता है। लॉग इन करने पर अतिथि बैग खाते के बैग से जुड़ जाता है। सुरक्षित सत्र कुकी पृष्ठ की स्क्रिप्ट नहीं पढ़ सकती।
 Your wishlist and delivery details	पसंदीदा उत्पाद और डिलीवरी विवरण
-Favourites are saved in MongoDB against your signed-in customer account and restored on future visits. Delivery details are stored only with the demo order on the server; they are not saved to localStorage. Checkout requires a valid customer session.	पसंदीदा उत्पाद आपके ग्राहक खाते के साथ मोंगोडीबी में सहेजे जाते हैं और अगली बार लौटने पर मिलते हैं। डिलीवरी विवरण केवल नमूना ऑर्डर के साथ सर्वर पर सहेजे जाते हैं; ब्राउज़र के स्थानीय स्टोरेज में नहीं। चेकआउट के लिए वैध ग्राहक सत्र ज़रूरी है।
 Customer reviews	ग्राहकों की समीक्षाएँ
-Signed-in customers may submit reviews. Reviews require administrator approval before appearing publicly. Demo transactions never qualify for a verified purchase badge.	लॉग इन किए ग्राहक समीक्षा लिख सकते हैं। सार्वजनिक रूप से दिखने से पहले प्रशासक की मंज़ूरी ज़रूरी है। नमूना खरीद पर सत्यापित खरीद का चिह्न नहीं मिलता।
 Newsletter	समाचार पत्रिका
 Subscriptions store your email and consent in MongoDB. Campaign delivery is not active. Contact and unsubscribe channels must be configured before email campaigns begin.	सदस्यता में आपका ईमेल और सहमति मोंगोडीबी में सहेजी जाती है। प्रचार ईमेल भेजना अभी सक्रिय नहीं है। अभियान से पहले संपर्क और सदस्यता छोड़ने की व्यवस्था करनी होगी।
 Contact information	संपर्क जानकारी
@@ -360,7 +333,6 @@ Sign in to write a review	समीक्षा लिखने के लिए
 Public display name	सार्वजनिक नाम
 Rating	रेटिंग
 Your review	आपकी समीक्षा
-Reviews are moderated before publication. Demo purchases do not earn a verified purchase badge.	प्रकाशित करने से पहले समीक्षाएँ जाँची जाती हैं। नमूना खरीद को सत्यापित खरीद का चिह्न नहीं मिलता।
 Submit Review	समीक्षा भेजें
 Submitting…	भेजा जा रहा है…
 star	सितारा

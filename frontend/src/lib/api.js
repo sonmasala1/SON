@@ -13,10 +13,23 @@ export class ApiError extends Error {
 }
 
 const inFlightGets = new Map();
+const inFlightWrites = new Map();
 
 export function apiRequest(endpoint, requestOptions = {}) {
   const method = String(requestOptions.method || 'GET').toUpperCase();
-  if (method !== 'GET' || requestOptions.signal?.aborted) return apiRequestNow(endpoint, requestOptions);
+  let body;
+  try { body = requestOptions.body ? JSON.parse(requestOptions.body) : null; } catch { body = null; }
+  const requestKey = body?.requestKey;
+  if (method !== 'GET' && requestKey) {
+    const key = `${apiUrl(endpoint)}|${requestKey}`;
+    if (inFlightWrites.has(key)) return inFlightWrites.get(key);
+    const request = apiRequestNow(endpoint, requestOptions).finally(() => inFlightWrites.delete(key));
+    inFlightWrites.set(key, request);
+    return request;
+  }
+  // A component owns its AbortSignal. Sharing that promise would let one unmount
+  // cancel another caller (including React Strict Mode's replacement effect).
+  if (method !== 'GET' || requestOptions.signal) return apiRequestNow(endpoint, requestOptions);
   const key = `${apiUrl(endpoint)}|${requestOptions.headers?.['X-CSRF-Token'] || ''}`;
   if (inFlightGets.has(key)) return inFlightGets.get(key);
   const request = apiRequestNow(endpoint, requestOptions).finally(() => inFlightGets.delete(key));
@@ -41,12 +54,11 @@ async function apiRequestNow(endpoint, { timeout = 10000, signal, ...options } =
     const data = await response.json().catch(() => null);
     const returnedId = response.headers.get('X-Request-ID');
     const correlationId = validRequestId(returnedId) ? returnedId : requestId;
-    if (!response.ok) { const error = new ApiError(`HTTP ${response.status}: ${data?.message || 'The request could not be completed.'}`, response.status, correlationId); error.retryAfter = Number(response.headers.get('Retry-After')) || 0; error.requiresProfile = Boolean(data?.requiresProfile); throw error; }
+    if (!response.ok) { const error = new ApiError(data?.message || 'The request could not be completed.', response.status, correlationId); error.retryAfter = Number(response.headers.get('Retry-After')) || 0; error.requiresProfile = Boolean(data?.requiresProfile); error.code = data?.code; error.conflicts = data?.conflicts; throw error; }
     if (!data || data.success === false) throw new ApiError('The server returned an unexpected response.', response.status, correlationId);
     return data;
   } catch (error) {
     if (signal?.aborted) throw error;
-    if (process.env.NODE_ENV === 'development') console.warn('[SON MASALA API]', JSON.stringify({ event: 'api.failure', requestId: error.requestId || requestId, status: error.status || 0, apiOrigin: new URL(API_BASE_URL).origin, reason: timedOut ? 'timeout' : error instanceof ApiError ? 'http_error' : 'network_error' }));
     if (error instanceof ApiError) throw error;
     throw new ApiError(timedOut ? 'The request took too long. Please try again.' : 'We couldn’t reach the store. Please check your connection and try again.', 0, requestId);
   } finally {
@@ -70,7 +82,8 @@ export const updateCartItem = (id, quantity) => apiRequest(`cart/items/${id}`, {
 export const removeCartItem = id => apiRequest(`cart/items/${id}`, { method: 'DELETE' });
 export const authRequest = (action, data = {}) => apiRequest(`auth/${action}`, { method: 'POST', body: JSON.stringify(data) });
 export const previewCheckout = delivery => apiRequest('checkout/preview', { method: 'POST', body: JSON.stringify(delivery ? { delivery } : {}) });
-export const placePayLaterOrder = data => apiRequest('checkout/place', { method: 'POST', body: JSON.stringify(data), timeout: 20000 });
-export const demoPayment = data => apiRequest('demo-payments', { method: 'POST', body: JSON.stringify(data), timeout: 20000 });
+export const placePayLaterOrder = data => apiRequest('checkout/place', { method: 'POST', body: JSON.stringify(data), timeout: 60000 });
+export const getCheckoutAttempt = key => apiRequest(`checkout/attempts/${encodeURIComponent(key)}`);
+export const cancelOrder = id => apiRequest(`orders/${encodeURIComponent(id)}/cancel`, { method: 'PATCH', body: '{}' });
 export const getOrder = id => apiRequest(`orders/${encodeURIComponent(id)}`);
 export const getReviews = productId => apiRequest(`reviews${productId ? `?productId=${productId}` : ''}`);

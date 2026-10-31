@@ -290,6 +290,7 @@ html[lang='hi'] .customer-auth-field > label, html[lang='hi'] .customer-otp-fiel
   .staff-workspace { grid-template-columns: 265px minmax(0, 1fr); }
   .staff-chart-grid { grid-template-columns: 1fr; }
   .cart-layout:not(.compact-cart), .checkout-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .confirmation-grid { grid-template-columns: minmax(0, 1fr) minmax(260px, .8fr); }
   .cart-summary { max-width: 100%; }
   /* Reflow dense reports into labelled records instead of a sideways scroll.
      Explicit table roles in the markup preserve semantics when CSS reflows it. */

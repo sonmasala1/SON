@@ -36,7 +36,7 @@ export default function ProductCard({ product, detail = false }) {
         ? Math.round(Number(variant.price) * 100)
         : 0;
   const hasPrice = variantUnitPricePaise > 0;
-  const available = product.status === 'published' && variant?.stock > 0 && hasPrice;
+  const available = product.status === 'published' && Number.isSafeInteger(variant?.stock) && variant.stock > 0 && Number.isSafeInteger(variantUnitPricePaise) && hasPrice;
   const isDraft = product.status === 'draft';
   const hasProductDetails = product.ingredients?.length || product.rawSpiceIngredients?.length
     || product.botanicalName || product.origin || product.usageInstructions || product.storageInstructions

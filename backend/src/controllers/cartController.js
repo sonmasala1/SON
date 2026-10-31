@@ -2,6 +2,7 @@ import { getCart, serializeCart, mutateCart, getVariant } from '../services/cart
 import { cartItem, quantityInput, objectId, parse } from '../validators/commerce.js';
 import { httpError } from '../utils/httpError.js';
 import { publicCustomer } from '../services/customerSessionService.js';
+import { stockConflict } from '../services/inventoryService.js';
 
 export async function showCart(req, res, next) {
   try { res.set('Cache-Control', 'no-store').json({ success: true, cart: await serializeCart(req, await getCart(req)), user: publicCustomer(req.user) }); } catch (error) { next(error); }
@@ -12,8 +13,8 @@ export async function addCartItem(req, res, next) {
     const cart = await mutateCart(req, async items => {
       const match = items.find(item => String(item.productId) === input.productId && String(item.variantId) === input.variantId);
       const quantity = input.quantity + (match?.quantity || 0);
-      const { variant } = await getVariant(req, input.productId, input.variantId);
-      if (quantity > variant.stock || quantity > 99) throw httpError(409, `Only ${variant.stock} packs are currently available.`);
+      const { product, variant } = await getVariant(req, input.productId, input.variantId, null, quantity);
+      if (quantity > variant.stock || quantity > 99) throw stockConflict([{ ...input, name: product.name, label: variant.label, quantity, stock: Math.min(99, variant.stock) }]);
       if (match) match.quantity = quantity; else items.push(input);
       return items;
     });
@@ -27,8 +28,8 @@ export async function updateCartItem(req, res, next) {
     const cart = await mutateCart(req, async items => {
       const item = items.find(item => String(item._id) === id);
       if (!item) throw httpError(404, 'This item is no longer in your bag.');
-      const { variant } = await getVariant(req, item.productId, item.variantId);
-      if (quantity > variant.stock) throw httpError(409, `Only ${variant.stock} packs are currently available.`);
+      const { product, variant } = await getVariant(req, item.productId, item.variantId, null, quantity);
+      if (quantity > variant.stock) throw stockConflict([{ ...item, name: product.name, label: variant.label, quantity, stock: variant.stock }]);
       item.quantity = quantity; return items;
     });
     res.json({ success: true, cart });

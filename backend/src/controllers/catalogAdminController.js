@@ -5,6 +5,7 @@ import Cart from '../models/Cart.js';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import ProductVariant from '../models/ProductVariant.js';
+import InventoryReservation from '../models/InventoryReservation.js';
 import { audit } from '../services/staffAudit.js';
 import { httpError } from '../utils/httpError.js';
 import { objectId, parse } from '../validators/commerce.js';
@@ -61,6 +62,7 @@ const productInputFields = z.object({
   images: z.array(text(1000)).max(20).optional().default([]),
   variants: z.array(variantInput).max(30).optional().default([]),
   featured: z.boolean().optional().default(false),
+  expectedVersion: z.number().int().min(0).optional(),
 }).strict();
 export const productInput = productInputFields.superRefine((product, context) => {
   for (const issue of productImageIssues(product)) context.addIssue({ code: z.ZodIssueCode.custom, path: issue.path.split('.'), message: issue.message });
@@ -125,6 +127,7 @@ function prepareProduct(input) {
 }
 
 async function syncCanonicalVariants(product, variants, session) {
+  if (await InventoryReservation.exists({ productId: product._id, inventorySource: 'EMBEDDED', status: 'HELD' }).session(session)) throw httpError(409, 'This product has orders holding embedded inventory. Complete or cancel those orders before changing its packs.');
   await ProductVariant.updateMany({ productId: product._id }, { isActive: false }, { session });
   const activeIds = [];
   for (const variant of variants) {
@@ -141,7 +144,6 @@ async function syncCanonicalVariants(product, variants, session) {
           weightGrams: variant.weightGrams,
           pricePaise: Math.round(variant.price * 100),
           mrpPaise: Math.round(variant.mrp * 100),
-          offerPricePaise: null,
           stock: variant.stock,
           image: variant.image,
           imageCrop: variant.imageCrop,
@@ -171,10 +173,11 @@ export async function listManagedProducts(req, res, next) {
       Product.countDocuments(filter),
     ]);
     const products = await Promise.all(records.map(async record => {
-      const variants = await ProductVariant.find({ productId: record._id, isActive: { $ne: false } }).sort({ weightGrams: 1 }).lean();
+      const canonical = await ProductVariant.find({ productId: record._id }).sort({ weightGrams: 1 }).lean();
+      const variants = canonical.filter(variant => variant.isActive !== false);
       return {
         ...record,
-        variants: variants.length ? variants.map(variant => ({
+        variants: canonical.length ? variants.map(variant => ({
           sku: variant.sku,
           label: variant.label,
           weightGrams: variant.weightGrams,
@@ -210,9 +213,12 @@ export async function updateManagedProduct(req, res, next) {
     await mongoose.connection.transaction(async session => {
       const product = await Product.findById(id).session(session);
       if (!product) throw httpError(404, 'Product not found.');
+      const { expectedVersion, ...changes } = input;
+      if (expectedVersion != null && expectedVersion !== product.__v) throw httpError(409, 'This product or its inventory changed. Reload the product before saving.');
       const previous = { sku: product.sku, slug: product.slug, status: product.status };
-      Object.assign(product, input);
+      Object.assign(product, changes);
       await syncCanonicalVariants(product, input.variants, session);
+      product.increment();
       await product.save({ session });
       await audit(req, 'PRODUCT_UPDATED', { targetId: id, changes: { before: previous, after: { sku: product.sku, slug: product.slug, status: product.status } } }, session);
       res.json({ success: true, product });

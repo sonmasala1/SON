@@ -1,0 +1,96 @@
+import assert from 'node:assert/strict';
+import mongoose from 'mongoose';
+import { randomBytes } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { createApp } from '../src/app.js';
+import { initializeModels } from '../src/config/models.js';
+import { createCommerceProduct } from '../test/helpers/commerceFixtures.js';
+import User from '../src/models/User.js';
+import Order from '../src/models/Order.js';
+import Product from '../src/models/Product.js';
+import { createCustomerSession } from '../src/services/customerSessionService.js';
+import { AdminAccount, AdminSession } from '../src/models/administration.js';
+import { digest, randomToken } from '../src/services/staffCrypto.js';
+
+const require = createRequire(new URL('../../frontend/package.json', import.meta.url));
+const { chromium } = require('@playwright/test');
+const dbName = `son_masala_test_browser_${Date.now()}_${process.pid}`;
+if (!process.env.MONGODB_TEST_URI) throw new Error('Set MONGODB_TEST_URI to an isolated replica set. This check never uses MONGODB_URI.');
+await mongoose.connect(process.env.MONGODB_TEST_URI, { dbName });
+await initializeModels();
+const fixture = await createCommerceProduct('browser-checkout', { source: 'EMBEDDED', stock: 4 });
+const config = { nodeEnv: 'test', mfaEncryptionKey: randomBytes(32).toString('base64'), testLogSink: () => {} };
+const user = await User.create({ name: 'Browser Shopper', email: 'browser@example.com', phone: '+919876543210', phoneVerified: true, phoneVerificationSource: 'SMS' });
+const session = await createCustomerSession({ get: () => 'isolated-browser-check', app: { locals: { config } } }, user, 'SMS');
+const server = createApp({ allowedOrigins: ['http://localhost:3017'], config }).listen(5017, '127.0.0.1');
+await new Promise(resolve => server.once('listening', resolve));
+let browser, page;
+try {
+  browser = await chromium.launch({ channel: 'chrome', headless: true });
+  const context = await browser.newContext();
+  await context.addCookies([{ name: 'son_customer_session', value: session.token, domain: 'localhost', path: '/', httpOnly: true, sameSite: 'Lax' }, { name: 'son_locale', value: 'en', domain: 'localhost', path: '/' }]);
+  page = await context.newPage(); const errors = []; page.setDefaultTimeout(15000); console.log('Browser opened.');
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('http://localhost:3017/product/browser-checkout'); console.log('Product page loaded.');
+  await page.getByRole('button', { name: /Add to Cart/i }).first().click(); console.log('Added product.');
+  await page.goto('http://localhost:3017/cart');
+  await page.getByRole('link', { name: /Proceed to Checkout/i }).click();
+  await page.locator('input[name="address"]').fill('123 Browser Fixture Street');
+  await page.locator('input[name="city"]').fill('Jaipur');
+  await page.locator('input[name="state"]').fill('Rajasthan');
+  await page.locator('input[name="pincode"]').fill('302001');
+  await page.getByRole('button', { name: 'Review Order', exact: true }).click();
+  const place = page.getByRole('button', { name: 'Place Order — Pay Later', exact: true });
+  await place.waitFor();
+  await place.evaluate(button => { button.click(); button.click(); });
+  await page.getByRole('heading', { name: 'Your order has been placed successfully!', exact: true }).waitFor();
+  assert.match(await page.locator('main').innerText(), /123 Browser Fixture Street/);
+  assert.match(await page.locator('main').innerText(), /Payment Status: Pending/);
+  assert.ok(!/demo|test order|sample products/i.test(await page.locator('body').innerText()));
+  assert.equal(await Order.countDocuments(), 1);
+  assert.equal((await Product.findById(fixture.product._id)).variants[0].stock, 3);
+  const order = await Order.findOne();
+  await page.screenshot({ path: new URL('../.runtime/checkout-success.png', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'), fullPage: true });
+  const staff = await AdminAccount.create({ adminId: randomToken(), fullName: 'Browser Admin', email: 'browser-admin@example.com', role: 'ADMIN', permissions: ['orders.view', 'orders.update', 'orders.cancel', 'dashboard.view'], status: 'ACTIVE', mfaEnabled: true });
+  const staffToken = randomToken();
+  await AdminSession.create({ accountId: staff._id, tokenHash: digest(staffToken), realm: 'admin', sessionVersion: staff.sessionVersion, lastSeenAt: new Date(), expiresAt: new Date(Date.now() + 3600000) });
+  await context.addCookies([{ name: 'son_admin_session', value: staffToken, domain: 'localhost', path: '/api/v1', httpOnly: true, sameSite: 'Strict' }]);
+  await page.goto('http://localhost:3017/admin/modules/orders');
+  await page.getByText(order.publicId, { exact: true }).waitFor();
+  assert.match(await page.locator('main').innerText(), /PENDING/);
+  await page.goto(`http://localhost:3017/orders/${order.publicId}`);
+  await page.getByRole('heading', { name: 'Your order has been placed successfully!', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Cancel order', exact: true }).click();
+  await page.getByRole('heading', { name: 'Your order has been cancelled.', exact: true }).waitFor();
+  assert.equal((await Product.findById(fixture.product._id)).variants[0].stock, 4);
+  // A committed order with a lost response is recovered by its private request key after reload.
+  await page.goto('http://localhost:3017/product/browser-checkout');
+  const added = page.waitForResponse(response => response.url().includes('/cart/items') && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Add to Cart', exact: true }).first().click(); await added;
+  await page.goto('http://localhost:3017/checkout');
+  for (const [name, value] of Object.entries({ address: '123 Recovery Fixture Street', city: 'Jaipur', state: 'Rajasthan', pincode: '302001' })) await page.locator(`input[name="${name}"]`).fill(value);
+  await page.getByRole('button', { name: 'Review Order', exact: true }).click();
+  let finishLoss, failLoss;
+  const lostResponse = new Promise((resolve, reject) => { finishLoss = resolve; failLoss = reject; });
+  await page.route('**/api/v1/checkout/place', async route => {
+    try { const response = await route.fetch(); assert.equal(response.status(), 201); await route.abort('connectionfailed'); finishLoss(); }
+    catch (error) { failLoss(error); }
+  });
+  await page.getByRole('button', { name: 'Place Order — Pay Later', exact: true }).click();
+  await lostResponse;
+  await page.locator('main .form-error[role="alert"]').waitFor();
+  await page.unroute('**/api/v1/checkout/place');
+  await page.reload();
+  await page.getByRole('heading', { name: 'Your order has been placed successfully!', exact: true }).waitFor();
+  assert.match(await page.locator('main').innerText(), /123 Recovery Fixture Street/);
+  assert.equal(await Order.countDocuments(), 2);
+  assert.equal((await Product.findById(fixture.product._id)).variants[0].stock, 3);
+  assert.deepEqual(errors, []);
+  await page.screenshot({ path: new URL('../.runtime/checkout-browser.png', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'), fullPage: true });
+  console.log('Browser checkout passed: product selection, cart, Pay Later, duplicate click, success/address/status, persisted order, Admin Orders visibility, cancellation/restocking and recovery after a lost response/reload. No page errors.');
+} catch (error) { console.error(error.message); if (page) console.log((await page.locator('body').innerText()).slice(0, 2500)); throw error; } finally {
+  await browser?.close();
+  await new Promise(resolve => server.close(resolve));
+  if (mongoose.connection.name === dbName && dbName.startsWith('son_masala_test_browser_')) await mongoose.connection.dropDatabase();
+  await mongoose.disconnect();
+}

@@ -4,13 +4,13 @@ import mongoose from 'mongoose';
 import { randomBytes } from 'node:crypto';
 import { initializeModels } from '../src/config/models.js';
 import { createApp } from '../src/app.js';
-import { seedDemo } from '../scripts/seed-demo.js';
+import { createCommerceProduct } from './helpers/commerceFixtures.js';
 import User from '../src/models/User.js';
 import Order from '../src/models/Order.js';
 import Product from '../src/models/Product.js';
 import ProductVariant from '../src/models/ProductVariant.js';
 import Cart from '../src/models/Cart.js';
-import { createDemoOrder, publicOrder } from '../src/services/paymentService.js';
+import { publicOrder } from '../src/services/paymentService.js';
 import { CustomerOtp, CustomerSession } from '../src/models/customerAuthentication.js';
 import { CUSTOMER_IDLE_MS, CUSTOMER_MAX_MS, tokenHash } from '../src/services/customerSessionService.js';
 import { deliver } from '../src/services/authDelivery.js';
@@ -24,7 +24,7 @@ test('passwordless customer identity, OTP delivery, persistence, and private sho
   const databaseName = `son_masala_test_customer_auth_${Date.now()}_${process.pid}`;
   await mongoose.connect(testUri, { dbName: databaseName, serverSelectionTimeoutMS: 5000 });
   t.after(async () => { if (mongoose.connection.name === databaseName && databaseName.startsWith('son_masala_test_customer_auth_')) await mongoose.connection.dropDatabase(); await mongoose.disconnect(); });
-  await initializeModels(); await seedDemo();
+  await initializeModels(); await createCommerceProduct('haldi-powder', { stock: 50, pricePaise: 9900 });
   let now = Date.now(); const messages = [];
   const config = { nodeEnv: 'test', demoEnabled: true, mfaEncryptionKey: randomBytes(32).toString('base64'), clock: () => now, deliveryAdapter: async message => messages.push(message) };
   const application = createApp({ config }); const server = application.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
@@ -124,10 +124,10 @@ test('passwordless customer identity, OTP delivery, persistence, and private sho
     const product = await Product.findOne({ slug: 'haldi-powder' }); const variant = await ProductVariant.findOne({ productId: product._id });
     const guest = actor(); await guest('/cart/items', { productId: product.id, variantId: variant.id, quantity: 2 });
     const delivery = { fullName: 'Test Guest', email: 'synthetic@example.com', phone: '9876543215', address: '123 Synthetic Street', city: 'Jaipur', state: 'Rajasthan', pincode: '302001' };
-    assert.equal((await guest('/demo-payments', { action: 'create', delivery, requestKey: crypto.randomUUID() })).status, 401);
+    assert.equal((await guest('/checkout/place', { delivery, requestKey: crypto.randomUUID() })).status, 401);
     // Preserve transfer of historical guest orders; new public checkout now requires login.
     const guestCart = await Cart.findById((await guest('/cart')).body.cart.id);
-    const legacy = await createDemoOrder({ ownerKey: guestCart.ownerKey, app: { locals: { config, databaseName: () => databaseName } } }, { delivery, requestKey: crypto.randomUUID() });
+    const legacy = await Order.create({ publicId: `SON-${crypto.randomUUID()}`, ownerKey: guestCart.ownerKey, cartId: guestCart._id, cartVersion: guestCart.__v, paymentMode: 'PAY_LATER', paymentStatus: 'PENDING', requestKey: crypto.randomUUID(), items: [], delivery });
     const pending = { body: { order: publicOrder(legacy) } };
     const result = await signIn(guest, '+919876543215', 'Test Guest');
     assert.equal((await guest('/cart')).body.cart.count, 2);

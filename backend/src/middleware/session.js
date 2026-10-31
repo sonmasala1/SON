@@ -17,12 +17,3 @@ export async function identifyCustomer(req, res, next) {
   } catch (error) { next(error); }
 }
 export function requireCustomer(req, _res, next) { next(req.user ? null : httpError(401, 'Please sign in to continue.')); }
-export function demoAllowed(req) {
-  const config = req.app.locals.config;
-  const db = req.app.locals.databaseName?.() || '';
-  return config.nodeEnv !== 'production' && config.demoEnabled && /(?:_demo(?:$|_)|_test_)/.test(db);
-}
-export function requireDemo(req, _res, next) {
-  if (!demoAllowed(req)) return next(httpError(404, 'Demo checkout is unavailable.'));
-  next();
-}

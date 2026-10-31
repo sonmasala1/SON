@@ -6,16 +6,15 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useStore } from './StoreProvider';
-import { previewCheckout, demoPayment, placePayLaterOrder, getOrder } from '@/lib/api';
+import { previewCheckout, placePayLaterOrder, getCheckoutAttempt } from '@/lib/api';
 import { moneyPaise } from '@/lib/catalog';
 import { Totals } from './CartContents';
-import Icon from './Icon';
+import { OrderDetails } from './OrderConfirmation';
 
 const fields = [['fullName', 'Full name', 'text', 'name'], ['email', 'Email', 'email', 'email'], ['phone', 'Phone', 'tel', 'tel-national'], ['address', 'Address', 'text', 'street-address'], ['city', 'City', 'text', 'address-level2'], ['state', 'State', 'text', 'address-level1'], ['pincode', 'Pincode', 'text', 'postal-code']];
 export default function Checkout() {
   const { locale } = useLocale();
   const { cartData, loading, refreshCart, user } = useStore();
-  const demoEnabled = Boolean(cartData?.demoCheckoutEnabled);
   const [step, setStep] = useState(2);
   const [delivery, setDelivery] = useState({ fullName: '', email: '', phone: '', address: '', city: '', state: '', pincode: '' });
   const [preview, setPreview] = useState(null);
@@ -23,67 +22,67 @@ export default function Checkout() {
   const [busy, setBusy] = useState(false);
   const [restoring, setRestoring] = useState(true);
   const [error, setError] = useState('');
-  const requestKey = useRef(null);
-  const restoringOnce = useRef(false);
+  const requestKey = useRef(null), placingOrder = useRef(false), restoredUser = useRef(null);
   const router = useRouter();
+  const storageKey = user ? `son-checkout-request:${user.id}` : null;
   useEffect(() => { if (!loading && !user) router.replace('/login?next=%2Fcheckout'); }, [loading, user, router]);
   useEffect(() => { if (user) setDelivery(current => ({ ...current, fullName: current.fullName || user.name || '', phone: current.phone || user.phone?.replace(/^\+91/, '') || '', email: current.email || user.email || '' })); }, [user]);
   useEffect(() => {
-    if (loading || !user || restoringOnce.current) return;
-    restoringOnce.current = true;
-    if (!demoEnabled) { setRestoring(false); return; }
-    let id;
-    try { id = sessionStorage.getItem('son-demo-pending-order'); } catch { /* No persistent delivery data. */ }
-    if (!id) { setRestoring(false); return; }
-    getOrder(id).then(result => {
-      if (result.order.paymentStatus !== 'PENDING') { sessionStorage.removeItem('son-demo-pending-order'); return; }
-      setOrder(result.order); setStep(4);
-    }).catch(error => { setError(error.message); }).finally(() => setRestoring(false));
-  }, [loading, user, demoEnabled]);
+    if (loading || !user || restoredUser.current === user.id) return;
+    restoredUser.current = user.id;
+    let pending;
+    try { pending = sessionStorage.getItem(storageKey); } catch { /* In-memory retries remain idempotent. */ }
+    if (!pending) { setRestoring(false); return; }
+    requestKey.current = pending;
+    getCheckoutAttempt(pending).then(result => {
+      setOrder(result.order);
+      try { sessionStorage.removeItem(storageKey); } catch { /* No delivery details are stored. */ }
+      void refreshCart();
+    }).catch(error => {
+      if ([400, 404, 410].includes(error.status)) {
+        try { sessionStorage.removeItem(storageKey); } catch { /* The next submission will create a new key. */ }
+        requestKey.current = null;
+      } else {
+        setError(error.message);
+      }
+    }).finally(() => setRestoring(false));
+  }, [loading, user, storageKey, refreshCart]);
   async function handleFailure(error) {
     setError(error.message);
     if (error.status === 401) { await refreshCart({ clearCustomer: true }); router.replace('/login?next=%2Fcheckout'); }
+    if (error.status === 409) { await refreshCart(); setStep(2); }
   }
   async function review(event) {
-    event.preventDefault(); setBusy(true); setError('');
+    event.preventDefault();
+    if (placingOrder.current) return;
+    placingOrder.current = true; setBusy(true); setError('');
     try { const result = await previewCheckout(delivery); setPreview(result.cart); setStep(3); }
-    catch (error) { await handleFailure(error); await refreshCart(); }
-    finally { setBusy(false); }
+    catch (error) { await handleFailure(error); }
+    finally { placingOrder.current = false; setBusy(false); }
   }
   async function createOrder() {
-    if (busy) return;
-    setBusy(true); setError('');
+    if (busy || placingOrder.current) return;
+    placingOrder.current = true; setBusy(true); setError('');
     requestKey.current ||= crypto.randomUUID();
     try {
-      if (!demoEnabled) {
-        const result = await placePayLaterOrder({ delivery, requestKey: requestKey.current });
-        setOrder(result.order); setStep(4); await refreshCart();
-        return;
-      }
-      const result = await demoPayment({ action: 'create', delivery, requestKey: requestKey.current });
-      if (result.order.paymentStatus !== 'PENDING') { router.push(`/orders/${result.order.id}`); return; }
-      setOrder(result.order); setStep(4);
-      try { sessionStorage.setItem('son-demo-pending-order', result.order.id); } catch { /* In-memory state remains usable. */ }
+      try { sessionStorage.setItem(storageKey, requestKey.current); } catch { /* Keep the key in memory if storage is unavailable. */ }
+      const result = await placePayLaterOrder({ delivery, requestKey: requestKey.current, cartVersion: preview.version, expectedTotalPaise: preview.totals.totalPaise });
+      setOrder(result.order);
+      try { sessionStorage.removeItem(storageKey); } catch { /* Safe to replay this key. */ }
+      await refreshCart();
     } catch (error) { await handleFailure(error); }
-    finally { setBusy(false); }
+    finally { placingOrder.current = false; setBusy(false); }
   }
-  async function simulate(outcome) {
-    setBusy(true); setError('');
-    try {
-      const result = await demoPayment({ action: 'simulate', orderId: order.id, outcome });
-      try { sessionStorage.removeItem('son-demo-pending-order'); } catch { /* No customer details are stored. */ }
-      await refreshCart(); router.push(`/orders/${result.order.id}`);
-    } catch (error) { await handleFailure(error); }
-    finally { setBusy(false); }
-  }
-  if (loading || !user || restoring) return <div className="catalog-state" role="status"><Text>{"Preparing your checkout…"}</Text></div>;
-  if (!order && !cartData?.items.length) return <div className="catalog-state"><h2><Text>{"Your bag is empty."}</Text></h2><p><Text>{"Add a spice before starting checkout."}</Text></p><Link className="button" href="/shop"><Text>{"Continue Shopping"}</Text></Link></div>;
-  if (!order && !cartData.valid) return <div className="catalog-state"><h2><Text>{"Let’s review your shopping bag."}</Text></h2><p><Text>{'Please adjust unavailable quantities before checkout.'}</Text></p><Link className="button" href="/cart"><Text>{"Back to Cart"}</Text></Link></div>;
-  return <><LocalizedAttrs><ol className="checkout-steps" aria-label="Checkout progress"><Text>{(demoEnabled ? ['Shopping Cart', 'Delivery Details', 'Order Review', 'Demo Payment', 'Confirmation'] : ['Shopping Cart', 'Delivery Details', 'Order Review']).map((name, index) => <li key={name} className={step === index + 1 ? 'current' : step > index + 1 ? 'complete' : ''} aria-current={step === index + 1 ? 'step' : undefined}><span><Text>{index + 1}</Text></span><Text>{index === 0 ? <Link href="/cart"><Text>{name}</Text></Link> : name}</Text></li>)}</Text></ol></LocalizedAttrs>{demoEnabled && <div className="demo-checkout-banner"><Icon name="check" size={22} /><div><strong><Text>{"DEMO CHECKOUT"}</Text></strong><p><Text>{"Use sample delivery details. This is a test order and no real shipment will be created."}</Text></p></div></div>}<Text error>{error && <p className="form-error" role="alert"><Text error>{error}</Text></p>}</Text>
-    <Text>{step === 2 && <div className="checkout-grid"><form onSubmit={review} className="delivery-form"><p className="eyebrow"><Text>{"STEP 2 · WHERE WOULD IT GO?"}</Text></p><h2><Text>{"Delivery details"}</Text></h2><div className="delivery-fields"><Text>{fields.map(([name, label, type, autoComplete]) => <label key={name} className={name === 'address' ? 'full-field' : ''}><Text>{label}</Text><LocalizedAttrs><input name={name} type={type} autoComplete={autoComplete} value={delivery[name]} required minLength={name === 'address' ? 8 : ['fullName', 'city', 'state'].includes(name) ? 2 : undefined} maxLength={name === 'phone' ? 10 : name === 'pincode' ? 6 : name === 'address' ? 300 : name === 'email' ? 254 : 100} pattern={name === 'phone' ? '[6-9][0-9]{9}' : name === 'pincode' ? '[1-9][0-9]{5}' : undefined} title={name === 'phone' ? 'A 10-digit Indian mobile number starting with 6, 7, 8, or 9' : name === 'pincode' ? 'A six-digit Indian pincode' : undefined} inputMode={['phone', 'pincode'].includes(name) ? 'numeric' : undefined} onChange={event => setDelivery(current => ({ ...current, [name]: event.target.value }))} /></LocalizedAttrs></label>)}</Text></div><button className="button" disabled={busy} type="submit"><Text>{busy ? 'Checking your bag…' : 'Review Order'}</Text> <Icon size={24} /></button></form><aside className="cart-summary"><h2><Text>{"Your bag"}</Text></h2><Totals totals={cartData.totals} demo={demoEnabled} /><p><Text>{"Totals are checked again by the store before an order is created."}</Text></p></aside></div>}</Text>
-    <Text>{step === 3 && <div className="checkout-grid"><div className="order-review"><p className="eyebrow"><Text>{"STEP 3 · ONE LAST LOOK"}</Text></p><h2><Text>{demoEnabled ? 'Review your demo order' : 'Review your order'}</Text></h2><Text>{preview.items.map(item => <div key={item._id} className="review-line"><div><strong><Text>{productName(item, locale)}</Text></strong><p><Text>{item.label}</Text><Text>{" · Quantity "}</Text><Text>{item.quantity}</Text></p></div><span><Text>{moneyPaise(item.lineTotalPaise)}</Text></span></div>)}</Text><div className="delivery-review"><h3><Text>{"Delivery details"}</Text></h3><p>{delivery.fullName}<br />{delivery.address}<br />{delivery.city}, {delivery.state} {delivery.pincode}<br />{delivery.phone} · {delivery.email}</p><button className="text-link" onClick={() => setStep(2)} disabled={busy}><Text>{"Edit delivery details"}</Text></button></div></div><aside className="cart-summary"><h2><Text>{demoEnabled ? 'Demo order total' : 'Order total'}</Text></h2><Totals totals={preview.totals} demo={demoEnabled} />{demoEnabled && <button className="button w-full" onClick={createOrder} disabled={busy}><Text>{busy ? 'Reserving your demo order…' : 'Continue to Demo Payment'}</Text></button>}<p><Text>{demoEnabled ? 'Demo stock is reserved for 10 minutes. No real payment is collected.' : 'Online payment is not configured. Your order has not been placed.'}</Text></p></aside></div>}</Text>
-    <Text>{step === 3 && !demoEnabled && <aside className="cart-summary"><button className="button w-full" onClick={createOrder} disabled={busy}><Text>{busy ? 'Placing your order…' : 'Pay Later — Arrange Payment with Our Team'}</Text></button></aside>}</Text>
-    <Text>{step === 4 && order && !demoEnabled && <section className="catalog-state"><p className="eyebrow"><Text>{"ORDER CONFIRMATION"}</Text></p><h1><Text>{"Your order has been placed successfully!"}</Text></h1><p><Text>{"Thank you for shopping with SON MASALA. Our team will contact you shortly to arrange payment and shipment of your order."}</Text></p><div className="demo-payment-order"><span><Text>{"Unique Order ID"}</Text></span><strong><Text>{order.id}</Text></strong><span><Text>{"Total amount payable"}</Text></span><strong><Text>{moneyPaise(order.totals.totalPaise)}</Text></strong><span><Text>{"Payment Status"}</Text></span><strong><Text>{"Pending"}</Text></strong><span><Text>{"Order Status"}</Text></span><strong><Text>{"Placed"}</Text></strong></div><Text>{order.items.map(item => <p key={String(item.variantId)}><Text>{item.name}</Text><Text>{" · Quantity "}</Text><Text>{item.quantity}</Text></p>)}</Text><Link className="button" href="/account"><Text>{"View My Orders"}</Text></Link></section>}</Text>
-    <Text>{step === 4 && order && demoEnabled && <section className="demo-payment-panel"><p className="eyebrow"><Text>{"STEP 4 · CHOOSE A TEST OUTCOME"}</Text></p><h2><Text>{"DEMO PAYMENT — NO REAL MONEY WILL BE CHARGED"}</Text></h2><p><Text>{"No card number, CVV, OTP, banking PIN, or UPI PIN is required."}</Text></p><div className="demo-payment-order"><span><Text>{"Demo Order ID"}</Text></span><strong><Text>{order.id}</Text></strong><span><Text>{"Total"}</Text></span><strong><Text>{moneyPaise(order.totals.totalPaise)}</Text></strong></div><div className="demo-payment-actions"><button className="button" disabled={busy} onClick={() => simulate('PAID_DEMO')}><Text>{"Simulate Successful Payment "}</Text><Icon name="check" size={24} /></button><button className="button button-failure" disabled={busy} onClick={() => simulate('FAILED')}><Text>{"Simulate Failed Payment"}</Text></button><button className="button button-outline" disabled={busy} onClick={() => simulate('CANCELLED')}><Text>{"Simulate Cancelled Payment"}</Text></button></div><p role="status"><Text>{busy ? 'Saving the demo payment result…' : 'The result is saved to the test database only. No shipment, invoice, or customer payment notification will be triggered.'}</Text></p></section>}</Text>
+  if (loading || !user || restoring) return <div className="catalog-state" role="status"><Text>Preparing your checkout…</Text></div>;
+  if (order) return <OrderDetails order={order} />;
+  return <>
+    {error && <p className="form-error" role="alert"><Text error>{error}</Text></p>}
+    {!cartData?.items.length ? <div className="catalog-state"><h2><Text>Your bag is empty.</Text></h2><Link className="button" href="/shop"><Text>Continue Shopping</Text></Link></div>
+      : !cartData.valid ? <div className="catalog-state"><h2><Text>Please review your shopping bag.</Text></h2>{cartData.items.filter(item => !item.available).map(item => <p key={item._id}>{productName(item, locale)} {item.label}: requested {item.quantity}, available {item.stock}.</p>)}<Link className="button" href="/cart"><Text>Back to Cart</Text></Link></div>
+      : <>
+        <ol className="checkout-steps" aria-label="Checkout progress">{['Shopping Cart', 'Delivery Details', 'Order Review'].map((name, index) => <li key={name} className={step === index + 1 ? 'current' : step > index + 1 ? 'complete' : ''} aria-current={step === index + 1 ? 'step' : undefined}><span>{index + 1}</span>{index === 0 ? <Link href="/cart"><Text>{name}</Text></Link> : <Text>{name}</Text>}</li>)}</ol>
+        {step === 2 && <div className="checkout-grid"><form onSubmit={review} className="delivery-form"><h2><Text>Delivery details</Text></h2><div className="delivery-fields">{fields.map(([name, label, type, autoComplete]) => <label key={name} className={name === 'address' ? 'full-field' : ''}><Text>{label}</Text><LocalizedAttrs><input name={name} type={type} autoComplete={autoComplete} value={delivery[name]} required minLength={name === 'address' ? 8 : ['fullName', 'city', 'state'].includes(name) ? 2 : undefined} maxLength={name === 'phone' ? 10 : name === 'pincode' ? 6 : name === 'address' ? 300 : name === 'email' ? 254 : 100} pattern={name === 'phone' ? '[6-9][0-9]{9}' : name === 'pincode' ? '[1-9][0-9]{5}' : undefined} inputMode={['phone', 'pincode'].includes(name) ? 'numeric' : undefined} onChange={event => setDelivery(current => ({ ...current, [name]: event.target.value }))} /></LocalizedAttrs></label>)}</div><button className="button" disabled={busy} type="submit"><Text>{busy ? 'Checking your bag…' : 'Review Order'}</Text></button></form><aside className="cart-summary"><h2><Text>Your bag</Text></h2><Totals totals={cartData.totals} /><p><Text>Totals are checked again by the store before an order is created.</Text></p></aside></div>}
+        {step === 3 && preview && <div className="checkout-grid"><div className="order-review"><h2><Text>Review your order</Text></h2>{preview.items.map(item => <div key={item._id} className="review-line"><div><strong>{productName(item, locale)}</strong><p>{item.label} · <Text>Quantity</Text> {item.quantity}</p></div><span>{moneyPaise(item.lineTotalPaise)}</span></div>)}<div className="delivery-review"><h3><Text>Delivery details</Text></h3><p>{delivery.fullName}<br />{delivery.address}<br />{delivery.city}, {delivery.state} {delivery.pincode}<br />{delivery.phone} · {delivery.email}</p><button className="text-link" onClick={() => setStep(2)} disabled={busy}><Text>Edit delivery details</Text></button></div></div><aside className="cart-summary"><h2><Text>Order total</Text></h2><Totals totals={preview.totals} /><button className="button w-full" onClick={createOrder} disabled={busy}><Text>{busy ? 'Placing your order…' : 'Place Order — Pay Later'}</Text></button><p><Text>Payment arranged by our team. No online payment is taken now.</Text></p></aside></div>}
+      </>}
   </>;
 }

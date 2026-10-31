@@ -33,11 +33,43 @@ describe('shared API client', () => {
   });
   it('preserves HTTP errors for useful status reporting', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: 'Catalogue unavailable' }), { status: 503 })));
-    await expect(apiRequest('products')).rejects.toMatchObject({ status: 503, message: 'HTTP 503: Catalogue unavailable' });
+    await expect(apiRequest('products')).rejects.toMatchObject({ status: 503, message: 'Catalogue unavailable' });
+  });
+  it('deduplicates concurrent writes with the same idempotency key', async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, order: { id: 'SON-TEST' } })));
+    vi.stubGlobal('fetch', fetch);
+    const requestKey = crypto.randomUUID();
+    const options = { method: 'POST', body: JSON.stringify({ requestKey }) };
+    const [first, second] = await Promise.all([
+      apiRequest('checkout/place', options),
+      apiRequest('checkout/place', options),
+    ]);
+    expect(first).toEqual(second);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
   it('reports network failures without raw browser exception text', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
     await expect(apiRequest('health')).rejects.toThrow('We couldn’t reach the store');
+  });
+  it('does not share component abort signals across product requests', async () => {
+    const fetch = vi.fn((_url, options) => new Promise((resolve, reject) => {
+      options.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+      if (fetch.mock.calls.length > 1) resolve(new Response(JSON.stringify({ success: true, product: { slug: 'haldi' } })));
+    }));
+    vi.stubGlobal('fetch', fetch);
+    const firstSignal = new AbortController(), secondSignal = new AbortController();
+    const first = apiRequest('products/haldi', { signal: firstSignal.signal });
+    const aborted = expect(first).rejects.toMatchObject({ name: 'AbortError' });
+    firstSignal.abort();
+    const second = apiRequest('products/haldi', { signal: secondSignal.signal });
+    await aborted;
+    await expect(second).resolves.toMatchObject({ product: { slug: 'haldi' } });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+  it('preserves exact inventory conflicts returned by checkout', async () => {
+    const conflicts = [{ name: 'Haldi', requested: 3, available: 1 }];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: 'Haldi: requested 3, available 1.', code: 'INSUFFICIENT_STOCK', conflicts }), { status: 409 })));
+    await expect(apiRequest('checkout/place', { method: 'POST' })).rejects.toMatchObject({ status: 409, code: 'INSUFFICIENT_STOCK', conflicts });
   });
   it('aborts a hanging request and reports timeout', async () => {
     vi.stubGlobal('fetch', vi.fn((_url, options) => new Promise((_resolve, reject) => options.signal.addEventListener('abort', () => reject(new Error('aborted'))))));

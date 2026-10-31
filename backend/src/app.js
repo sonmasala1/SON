@@ -16,7 +16,7 @@ export function createApp({ allowedOrigins = ['http://localhost:3000', 'https://
   app.set('trust proxy', 1);
   app.locals.config = {
     crossSiteCookies: process.env.SESSION_CROSS_SITE_COOKIES === 'true',
-    nodeEnv: process.env.NODE_ENV || 'development', demoEnabled: process.env.ENABLE_DEMO_CHECKOUT === 'true', deliveryChargePaise: Number(process.env.DELIVERY_CHARGE_PAISE || 4900), freeDeliveryThresholdPaise: Number(process.env.FREE_DELIVERY_THRESHOLD_PAISE || 49900),
+    nodeEnv: process.env.NODE_ENV || 'development', deliveryChargePaise: Number(process.env.DELIVERY_CHARGE_PAISE || 4900), freeDeliveryThresholdPaise: Number(process.env.FREE_DELIVERY_THRESHOLD_PAISE || 49900),
     mfaEncryptionKey: process.env.ADMIN_MFA_ENCRYPTION_KEY, authDevPreview: process.env.AUTH_DEV_PREVIEW === 'true',
     webAuthnRpId: process.env.ADMIN_WEBAUTHN_RP_ID || new URL(process.env.STAFF_APP_ORIGIN || (process.env.NODE_ENV === 'production' ? 'https://son-dusky.vercel.app' : 'http://localhost:3000')).hostname, webAuthnOrigin: process.env.STAFF_APP_ORIGIN || (process.env.NODE_ENV === 'production' ? 'https://son-dusky.vercel.app' : 'http://localhost:3000'),
     emailProvider: process.env.EMAIL_PROVIDER || 'brevo', brevoApiKey: process.env.BREVO_API_KEY, brevoSenderEmail: process.env.BREVO_SENDER_EMAIL, brevoSenderName: process.env.BREVO_SENDER_NAME || 'SON MASALA',

@@ -17,9 +17,8 @@ export async function revokeOtherCustomerSessions(req, res, next) {
 }
 export async function customerOrders(req, res, next) {
   try {
-    const filter = { userId: req.user._id, ownerKey: `user:${req.user.id}` };
-    if (req.app.locals.config.nodeEnv === 'production') { filter.isDemo = { $ne: true }; filter.paymentMode = { $ne: 'DEMO' }; }
-    const orders = await Order.find(filter).select('publicId paymentStatus paymentMode isDemo totals createdAt').sort({ createdAt: -1 }).limit(50).lean();
+    const filter = { userId: req.user._id, ownerKey: `user:${req.user.id}`, isDemo: { $ne: true }, paymentMode: { $ne: 'DEMO' } };
+    const orders = await Order.find(filter).select('publicId paymentStatus fulfillmentStatus paymentMode totals createdAt').sort({ createdAt: -1 }).limit(50).lean();
     res.set('Cache-Control', 'no-store').json({ success: true, orders: orders.map(order => ({ id: order.publicId, ...order, _id: undefined })) });
   } catch (error) { next(error); }
 }

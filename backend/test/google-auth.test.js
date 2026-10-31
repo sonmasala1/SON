@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import { randomBytes } from 'node:crypto';
 import { initializeModels } from '../src/config/models.js';
 import { createApp, safeRequestUrl } from '../src/app.js';
-import { seedDemo } from '../scripts/seed-demo.js';
+import { createCommerceProduct } from './helpers/commerceFixtures.js';
 import { createGoogleTestProvider } from '../scripts/fixtures/google-provider.js';
 import GoogleLoginAttempt from '../src/models/GoogleLoginAttempt.js';
 import User from '../src/models/User.js';
@@ -23,7 +23,7 @@ test('Google customer OAuth verifies identity, binds the browser, and preserves 
   const databaseName = `son_masala_test_google_${Date.now()}_${process.pid}`;
   await mongoose.connect(testUri, { dbName: databaseName, serverSelectionTimeoutMS: 5000 });
   t.after(async () => { if (mongoose.connection.name === databaseName && databaseName.startsWith('son_masala_test_google_')) await mongoose.connection.dropDatabase(); await mongoose.disconnect(); });
-  await initializeModels(); await seedDemo();
+  await initializeModels(); await createCommerceProduct('haldi-powder', { stock: 50, pricePaise: 9900 });
   let now = Date.now();
   const config = { nodeEnv: 'test', webAuthnOrigin: 'http://localhost:3000', demoEnabled: true, mfaEncryptionKey: randomBytes(32).toString('base64'), clock: () => now, ...createGoogleTestProvider() };
   const app = createApp({ config }), server = app.listen(0, '127.0.0.1');

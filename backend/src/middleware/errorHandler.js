@@ -1,9 +1,10 @@
-import { failureReason } from '../services/logger.js';
+import { logEvent, failureReason } from '../services/logger.js';
 
 export function errorHandler(err, req, res, _next) {
   const status = Number.isInteger(err.status) && err.status >= 400 && err.status <= 599
     ? err.status : 500;
   req.logFailure = req.logFailure || err.logReason || failureReason(status);
+  if (err.logReason === 'stock_conflict' || err.logReason === 'restock_target_missing') logEvent('WARN', 'order.stock.conflict', { status, code: err.code, reason: err.logReason }, req);
   if (err.retryAfter) res.set('Retry-After', String(err.retryAfter));
 
   // If this is the Google OAuth callback, never show raw JSON error in browser; redirect to frontend login
@@ -18,5 +19,7 @@ export function errorHandler(err, req, res, _next) {
   const message = status === 503 ? err.expose ? err.message : 'Our catalogue is temporarily unavailable. Please try again shortly.' : status >= 500 ? 'Something went wrong. Please try again.' : err.type === 'entity.parse.failed' ? 'Invalid JSON request' : err.message || 'Request failed';
   res.status(status).json({
     success: false, message, error: message, requestId: req.requestId,
+    ...(err.expose && typeof err.code === 'string' ? { code: err.code } : {}),
+    ...(err.expose && Array.isArray(err.conflicts) ? { conflicts: err.conflicts } : {}),
   });
 }
