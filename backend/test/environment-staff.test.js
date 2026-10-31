@@ -4,7 +4,7 @@ import { environmentStaff } from '../src/services/environmentStaff.js';
 import { newMfaSecret, mfaStep, totp } from '../src/services/staffCrypto.js';
 import { hashPassword } from '../src/services/staffCrypto.js';
 import { AdminAccount, AdminChallenge } from '../src/models/administration.js';
-import { beginStaffLogin } from '../src/services/staffAuthService.js';
+import { beginStaffLogin, loginStaffWithSecurityCode } from '../src/services/staffAuthService.js';
 
 const configured = () => ({ NODE_ENV: 'development', ADMIN_ID: 'admin-local', ADMIN_PASSWORD: 'random-local-password', ADMIN_MFA_SECRET: newMfaSecret(), OWNER_USER_ID: 'owner-local', OWNER_PASSWORD: 'different-local-password', OWNER_MFA_SECRET: newMfaSecret() });
 test('configured IDs are normalized and roles cannot be selected by the login client', () => {

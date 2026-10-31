@@ -8,7 +8,7 @@ describe('environment API routing', () => {
     expect(() => resolveApiBaseUrl({ nodeEnv: 'development', configuredUrl: 'https://son-5wk9.onrender.com/api/v1' })).toThrow('local backend');
   });
   it('uses the consolidated production fallback and rejects loopback addresses', () => {
-    expect(() => resolveApiBaseUrl({ nodeEnv: 'production' })).toThrow('Vercel');
+    expect(resolveApiBaseUrl({ nodeEnv: 'production' })).toBe('https://son-5wk9.onrender.com/api/v1');
     for (const host of ['localhost', '127.0.0.1', '[::1]']) expect(resolveApiBaseUrl({ nodeEnv: 'production', configuredUrl: `https://${host}:5000/api/v1`, productionUrl: 'https://son-5wk9.onrender.com/api/v1' })).toBe('https://son-5wk9.onrender.com/api/v1');
     expect(resolveApiBaseUrl({ nodeEnv: 'production', configuredUrl: 'https://son-5wk9.onrender.com/api/v1/' })).toBe('https://son-5wk9.onrender.com/api/v1');
   });

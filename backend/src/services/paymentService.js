@@ -34,7 +34,7 @@ export async function createPayLaterOrder(req, { delivery, requestKey, cartVersi
       }], { session });
       for (const item of preview.items) {
         await deductInventory(item, session);
-        await InventoryReservation.create([{ orderId: created._id, productId: item.productId, variantId: item.variantId, inventorySource: item.inventorySource, quantity: item.quantity, status: 'HELD' }], { session });
+        await InventoryReservation.create([{ orderId: created._id, productId: item.productId, variantId: item.variantId, inventorySource: item.inventorySource, quantity: item.quantity, status: 'HELD', expiresAt: new Date(Date.now() + 30 * 60 * 1000) }], { session });
       }
       await Payment.create([{ orderId: created._id, paymentMode: 'PAY_LATER', status: 'PENDING', amountPaise: created.totals.totalPaise, isDemo: false }], { session });
       cart.items = []; cart.increment();
@@ -68,6 +68,32 @@ export async function cancelPayLaterOrder(req, orderId) {
   });
   logEvent('INFO', 'order.cancelled', { status: 200 }, req);
   return result;
+}
+
+export async function releaseExpiredPayLaterReservations() {
+  const expired = await InventoryReservation.find({
+    status: 'HELD',
+    expiresAt: { $lte: new Date() },
+  }).select('orderId').lean();
+  const orderIds = [...new Set(expired.map(reservation => String(reservation.orderId)))];
+  let released = 0;
+  for (const orderId of orderIds) {
+    try {
+      await runTransaction(async session => {
+        const order = await Order.findOne({ _id: orderId, paymentMode: 'PAY_LATER', paymentStatus: 'PENDING', fulfillmentStatus: { $nin: ['SHIPPED', 'DELIVERED', 'CANCELLED'] } }).session(session);
+        if (!order) return;
+        await releaseOrderInventory(order, session);
+        order.paymentStatus = 'CANCELLED';
+        order.fulfillmentStatus = 'CANCELLED';
+        await order.save({ session });
+        await Payment.updateOne({ orderId: order._id }, { $set: { status: 'CANCELLED' } }, { session });
+        released += 1;
+      });
+    } catch (error) {
+      logEvent('ERROR', 'order.cancelled', { status: 503, reason: 'expired_reservation_release_failed' }, { ip: 'background', get: () => 'expired-reservation-cleanup' });
+    }
+  }
+  return released;
 }
 
 export function publicOrder(order) {

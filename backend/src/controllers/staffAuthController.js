@@ -1,12 +1,20 @@
 import { z } from 'zod';
 import { parse } from '../validators/commerce.js';
-import { beginStaffLogin, verifyStaffMfa, staffView, sendStaffSession } from '../services/staffAuthService.js';
+import { loginStaffWithSecurityCode, verifyStaffMfa, staffView, sendStaffSession } from '../services/staffAuthService.js';
 import { AdminSession } from '../models/administration.js';
 import { audit, securityNow } from '../services/staffAudit.js';
 import { staffCookie } from '../middleware/staffAccess.js';
 
 export const staffLogin = realm => async (req, res, next) => {
-  try { const input = parse(z.object({ adminId: z.string().trim().toUpperCase().max(40), password: z.string().min(1).max(200) }).strict(), req.body); res.set('Cache-Control', 'no-store').json({ success: true, ...await beginStaffLogin(req, realm, input.adminId, input.password) }); }
+  try {
+    const input = parse(z.object({
+      adminId: z.string().trim().toUpperCase().max(40),
+      password: z.string().min(1).max(200),
+      securityCode: z.string().trim().regex(/^\d{6}$/),
+    }).strict(), req.body);
+    const result = await loginStaffWithSecurityCode(req, realm, input.adminId, input.password, input.securityCode);
+    sendStaffSession(req, res, result, realm);
+  }
   catch (error) { next(error); }
 };
 export const staffMfa = realm => async (req, res, next) => {

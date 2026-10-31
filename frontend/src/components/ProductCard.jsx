@@ -20,11 +20,14 @@ export default function ProductCard({ product, detail = false }) {
   const [selectedGallery, setSelectedGallery] = useState(null);
   const [adding, setAdding] = useState(false);
 
-  const { addToCart, wishlist, toggleWishlist, loading, user, wishlistBusy } = useStore();
+  const { addToCart, cart, updateQuantity, removeItem, wishlist, toggleWishlist, loading, user, wishlistBusy, busyItems } = useStore();
   const router = useRouter();
   const { locale } = useLocale();
   const name = productName(product, locale);
   const variant = variants[variantIndex];
+  const cartItem = cart.find(item => String(item.productId) === String(product._id) && String(item.variantId) === String(variant?._id));
+  const cartQuantity = cartItem?.quantity || 0;
+  const quantityBusy = cartItem ? Boolean(busyItems[`cart:${cartItem._id}`]) : Boolean(busyItems[`product:${product._id}:${variant?._id}`]);
   const selectedImage = selectedGallery || { url: variant?.image || product.image || allImages[0], crop: variant?.imageCrop || 'full' };
   const image = !imageFailed && safeImage(selectedImage.url);
   const gallery = productGallery(product);
@@ -73,6 +76,17 @@ export default function ProductCard({ product, detail = false }) {
     } finally {
       setAdding(false);
     }
+  }
+
+  async function decreaseQuantity() {
+    if (!cartItem || quantityBusy) return;
+    if (cartQuantity <= 1) await removeItem(cartItem._id);
+    else await updateQuantity(cartItem._id, cartQuantity - 1);
+  }
+
+  async function increaseQuantity() {
+    if (!cartItem || quantityBusy || cartQuantity >= Math.min(99, Number(variant?.stock || 0))) return;
+    await updateQuantity(cartItem._id, cartQuantity + 1);
   }
 
   return (
@@ -187,9 +201,17 @@ export default function ProductCard({ product, detail = false }) {
 
         {/* Actions */}
         <div className="product-actions">
-          <button className="button" disabled={!available || adding || loading} onClick={addSelectedToCart}>
-            <Icon name="bag" size={24} /><Text>{isDraft ? 'Coming Soon' : available ? 'Add to Cart' : 'Unavailable'}</Text>
-          </button>
+          {cartItem ? (
+            <div className="product-card-quantity" role="group" aria-label={`Quantity for ${name}`}>
+              <button type="button" onClick={decreaseQuantity} disabled={quantityBusy} aria-label={`Decrease ${name} quantity`}>−</button>
+              <span aria-live="polite">{cartQuantity}</span>
+              <button type="button" onClick={increaseQuantity} disabled={quantityBusy || cartQuantity >= Math.min(99, Number(variant?.stock || 0))} aria-label={`Increase ${name} quantity`}>+</button>
+            </div>
+          ) : (
+            <button className="button" disabled={!available || adding || loading || quantityBusy} onClick={addSelectedToCart}>
+              <Icon name="bag" size={24} /><Text>{isDraft ? 'Coming Soon' : available ? 'Add to Cart' : 'Unavailable'}</Text>
+            </button>
+          )}
           <button className="button button-outline" disabled={!available || adding || loading} onClick={buyNow}>
             <Text>Buy Now</Text>
           </button>

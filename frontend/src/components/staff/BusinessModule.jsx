@@ -7,23 +7,11 @@ import { moneyPaise } from '@/lib/catalog';
 import BusinessDashboard from './BusinessDashboard';
 import ProductManagement from './ProductManagement';
 import Icon from '@/components/Icon';
-
-const fulfillmentLabels = { PLACED: 'Placed', CONFIRMED: 'Confirmed', PROCESSING: 'Processing', PACKED: 'Packed', SHIPPED: 'Shipped', DELIVERED: 'Delivered', CANCELLED: 'Cancelled' };
-const paymentLabels = { PENDING: 'Pending', PAID: 'Paid', FAILED: 'Failed', CANCELLED: 'Cancelled' };
-
-function StatusBadge({ type, value }) {
-  const status = String(value || '').toUpperCase();
-  const tone = type === 'payment' ? (status === 'PAID' ? 'paid' : status === 'FAILED' || status === 'CANCELLED' ? 'failed' : 'pending') : ({
-    PLACED: 'placed', CONFIRMED: 'confirmed', PROCESSING: 'confirmed', PACKED: 'packed',
-    SHIPPED: 'shipped', DELIVERED: 'delivered', CANCELLED: 'failed',
-  }[status] || 'placed');
-  return <span className={`staff-status-badge staff-status-${tone}`}>{type === 'payment' ? paymentLabels[status] || value : fulfillmentLabels[status] || value}</span>;
-}
+import AdminOrderCard from './AdminOrderCard';
 
 function OrderManagement({ records, canUpdate, request, reload }) {
   const [drafts, setDrafts] = useState({});
   const [states, setStates] = useState({});
-  const [copied, setCopied] = useState('');
   useEffect(() => {
     setDrafts(current => {
       const next = { ...current };
@@ -42,12 +30,6 @@ function OrderManagement({ records, canUpdate, request, reload }) {
   function updateDraft(id, field, value) {
     setDrafts(current => ({ ...current, [id]: { ...current[id], [field]: value } }));
     setStates(current => ({ ...current, [id]: { ...current[id], success: '', error: '' } }));
-  }
-
-  async function copyOrderId(id) {
-    try { await navigator.clipboard.writeText(id); } catch { return; }
-    setCopied(id);
-    window.setTimeout(() => setCopied(current => current === id ? '' : current), 1600);
   }
 
   async function saveOrder(record) {
@@ -79,31 +61,8 @@ function OrderManagement({ records, canUpdate, request, reload }) {
   return <div className="staff-order-grid">{records.map(record => {
     const id = String(record._id);
     const draft = drafts[id] || { fulfillmentStatus: record.fulfillmentStatus, paymentStatus: record.paymentStatus, paymentConfirmed: false };
-    const state = states[id] || {};
-    const canConfirmPayment = draft.paymentStatus === 'PAID' && record.paymentStatus !== 'PAID';
-    return <article className="staff-order-card" key={id}>
-      <header className="staff-order-card-header">
-        <div><span><Text>Order ID</Text></span><strong>{record.publicId}</strong><button type="button" className="staff-copy-button" onClick={() => copyOrderId(record.publicId)}><Icon name={copied === record.publicId ? 'check' : 'copy'} size={16} />{copied === record.publicId ? 'Copied' : 'Copy'}</button></div>
-        <div className="staff-order-badges"><StatusBadge type="payment" value={record.paymentStatus} /><StatusBadge value={record.fulfillmentStatus} /></div>
-      </header>
-      <div className="staff-order-card-body">
-        <section className="staff-order-party"><span className="staff-card-label"><Text>Customer</Text></span><strong>{record.delivery?.fullName || '—'}</strong><p>{record.delivery?.address}{record.delivery?.city ? `, ${record.delivery.city}` : ''}{record.delivery?.pincode ? ` ${record.delivery.pincode}` : ''}</p><p>{record.delivery?.phone} · {record.delivery?.email}</p></section>
-        <section className="staff-order-items"><span className="staff-card-label"><Text>Products</Text></span>{record.items?.map(item => <div key={`${String(item.variantId || item.productId)}-${item.name}`}><span>{item.name}{item.label ? ` · ${item.label}` : ''}</span><strong>× {item.quantity}</strong><strong>{moneyPaise(item.lineTotalPaise)}</strong></div>)}</section>
-        <section className="staff-order-controls">
-          <label><Text>Order status</Text><select value={draft.fulfillmentStatus} onChange={event => updateDraft(id, 'fulfillmentStatus', event.target.value)} disabled={state.saving}>{Object.entries(fulfillmentLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
-          <label><Text>Payment status</Text><select value={draft.paymentStatus} onChange={event => updateDraft(id, 'paymentStatus', event.target.value)} disabled={state.saving}>{['PENDING', 'PAID', 'FAILED', 'CANCELLED'].filter(value => value !== 'FAILED' || record.paymentStatus === 'FAILED').map(value => <option value={value} key={value}>{paymentLabels[value]}</option>)}</select></label>
-          {canConfirmPayment && <label className="staff-confirm-payment"><input type="checkbox" checked={draft.paymentConfirmed} onChange={event => updateDraft(id, 'paymentConfirmed', event.target.checked)} disabled={state.saving} /><span><Text>Payment received and verified</Text></span></label>}
-        </section>
-      </div>
-      <footer className="staff-order-card-footer">
-        <div><span><Text>Order amount</Text></span><strong>{moneyPaise(record.totals?.totalPaise || 0)}</strong></div>
-        <div className="staff-order-save">
-          {state.error && <p className="staff-row-error" role="alert">{state.error}</p>}
-          {state.success && <p className="staff-row-success" role="status"><Icon name="check" size={17} />{state.success}</p>}
-          {canUpdate && <button type="button" className="button staff-save-button" onClick={() => saveOrder(record)} disabled={state.saving}>{state.saving ? 'Saving…' : 'Save Changes'}</button>}
-        </div>
-      </footer>
-    </article>;
+    return <AdminOrderCard key={id} record={record} draft={draft} state={states[id] || {}}
+      canUpdate={canUpdate} onChange={(field, value) => updateDraft(id, field, value)} onSave={() => saveOrder(record)} />;
   })}</div>;
 }
 
@@ -133,5 +92,82 @@ export default function BusinessModule({ type }) {
   if (type === 'analytics') return <BusinessDashboard endpoint="admin/analytics" />;
   if (type === 'products') return <ProductManagement />;
   if (type === 'orders') return <><div className="staff-page-heading"><div><p className="eyebrow">ORDER MANAGEMENT</p><h1><Text>Orders</Text></h1></div><button className="button button-outline" onClick={() => load(true)} disabled={busy}><Icon name="refresh" size={18} /><Text>Refresh</Text></button></div><Text error>{error && <p role="alert" className="form-error"><Text error>{error}</Text></p>}</Text>{!records ? <p role="status"><Text>Loading authorized records…</Text></p> : !records.length ? <p className="staff-empty"><Text>No orders are available.</Text></p> : <OrderManagement records={records} canUpdate={account.permissions.includes('orders.update')} request={request} reload={load} />}</>;
-  return <><div className="staff-page-heading"><h1><Text>{type.charAt(0).toUpperCase() + type.slice(1)}</Text></h1><button className="text-link" onClick={() => load(true)}><Text>{"Refresh"}</Text></button></div><Text error>{error && <p role="alert" className="form-error"><Text error>{error}</Text></p>}</Text><Text>{!records ? <p role="status"><Text>{"Loading authorized records…"}</Text></p> : !records.length ? <p className="staff-empty"><Text>{"No records are available."}</Text></p> : <div className="staff-table-scroll"><table role="table" className="staff-table"><thead role="rowgroup"><tr role="row"><th scope="col"><Text>{"Record"}</Text></th><th scope="col"><Text>{"Details"}</Text></th><th scope="col"><Text>{"Status / amount"}</Text></th><Text>{['inventory', 'orders'].includes(type) && account.permissions.includes(`${type}.update`) && <th scope="col"><Text>{"Update"}</Text></th>}</Text></tr></thead><tbody role="rowgroup"><Text>{records.map(record => <tr role="row" key={record._id}><StaffTableCell label="Record"><strong><Text>{record.publicId || record.name || record.productId?.name || record.sku || record._id}</Text></strong></StaffTableCell><StaffTableCell label="Details">  <Text>{record.email || record.delivery?.email || record.label || record.category || record.paymentMode || ''}</Text><Text>{(record.phone || record.delivery?.phone) && <div><Text>{record.phone || record.delivery?.phone}</Text></div>}</Text><Text>{record.delivery?.fullName && <div><strong><Text>{record.delivery.fullName}</Text></strong></div>}</Text><Text>{record.delivery?.address && <div><Text>{`${record.delivery.address}, ${record.delivery.city || ''} ${record.delivery.pincode || ''}`}</Text></div>}</Text><Text>{record.items?.length ? record.items.map(item => <div key={String(item.variantId || item.productId || item.name)}><Text>{item.name}</Text><Text>{` × ${item.quantity}`}</Text></div>) : null}</Text></StaffTableCell>    <StaffTableCell label="Status / amount"><Text>{type === 'inventory' ? `${record.stock} available` : `${record.totals?.totalPaise != null ? moneyPaise(record.totals.totalPaise) : record.amountPaise != null ? moneyPaise(record.amountPaise) : '—'} · Payment: ${record.paymentStatus || '—'} · Order: ${record.fulfillmentStatus || record.status || '—'}`}</Text></StaffTableCell><Text>{['inventory', 'orders'].includes(type) && account.permissions.includes(`${type}.update`) && <StaffTableCell label="Update"><form className="staff-inline-form" key={`${record._id}:${record.paymentStatus}:${record.fulfillmentStatus}`} onSubmit={event => update(record, event)}>  <Text>{type === 'inventory' ? <LocalizedAttrs><button type="button" className="button button-small" aria-label={`Decrease stock for ${record.sku}`} onClick={() => setStockDrafts(drafts => ({ ...drafts, [record._id]: Math.max(0, Number(drafts[record._id] ?? record.stock) - 1) }))}>−</button><input type="number" name="value" aria-label={`Stock for ${record.sku}`} value={stockDrafts[record._id] ?? record.stock} onChange={event => setStockDrafts(drafts => ({ ...drafts, [record._id]: Math.max(0, Number(event.target.value || 0)) }))} min={0} max={10000000} required /><button type="button" className="button button-small" aria-label={`Increase stock for ${record.sku}`} onClick={() => setStockDrafts(drafts => ({ ...drafts, [record._id]: Math.min(10000000, Number(drafts[record._id] ?? record.stock) + 1) }))}>+</button></LocalizedAttrs>     : <LocalizedAttrs>    <select name="value" defaultValue={record.fulfillmentStatus || 'PLACED'} aria-label={`Fulfillment for ${record.publicId}`}><Text>{['PLACED', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED'].map(status => <option value={status} key={status}><Text>{status}</Text></option>)}  </Text></select>{type === 'orders' && <select name="paymentStatus" defaultValue={record.paymentStatus || 'PENDING'} aria-label={`Payment for ${record.publicId}`}><Text>{['PENDING', 'PAID', 'CANCELLED'].map(status => <option value={status} key={status}><Text>{status}</Text></option>)}</Text></select>}{type === 'orders' && record.paymentStatus === 'PENDING' && <label><input type="checkbox" name="paymentConfirmed" /><Text>Payment received and verified</Text></label>}</LocalizedAttrs>    }</Text><button className="button button-small" disabled={busy}><Text>{"Save"}</Text></button></form></StaffTableCell>}</Text></tr>)}</Text></tbody></table></div>}</Text></>;
+  return (
+    <>
+      <div className="staff-page-heading">
+        <h1><Text>{type.charAt(0).toUpperCase() + type.slice(1)}</Text></h1>
+        <button className="text-link" onClick={() => load(true)}><Text>Refresh</Text></button>
+      </div>
+      {error && <p role="alert" className="form-error"><Text>{error}</Text></p>}
+      {!records ? (
+        <p role="status"><Text>Loading authorized records…</Text></p>
+      ) : !records.length ? (
+        <p className="staff-empty"><Text>No records are available.</Text></p>
+      ) : (
+        <div className="staff-table-scroll">
+          <table role="table" className="staff-table">
+            <thead role="rowgroup">
+              <tr role="row">
+                <th scope="col"><Text>Record</Text></th>
+                <th scope="col"><Text>Details</Text></th>
+                <th scope="col"><Text>Status / amount</Text></th>
+                {['inventory', 'orders'].includes(type) && account.permissions.includes(`${type}.update`) && (
+                  <th scope="col"><Text>Update</Text></th>
+                )}
+              </tr>
+            </thead>
+            <tbody role="rowgroup">
+              {records.map(record => (
+                <tr role="row" key={record._id}>
+                  <StaffTableCell label="Record"><strong><Text>{record.publicId || record.name || record.productId?.name || record.sku || record._id}</Text></strong></StaffTableCell>
+                  <StaffTableCell label="Details">
+                    <Text>{record.email || record.delivery?.email || record.label || record.category || record.paymentMode || ''}</Text>
+                    {(record.phone || record.delivery?.phone) && <div><Text>{record.phone || record.delivery?.phone}</Text></div>}
+                    {record.delivery?.fullName && <div><strong><Text>{record.delivery.fullName}</Text></strong></div>}
+                    {record.delivery?.address && <div><Text>{`${record.delivery.address}, ${record.delivery.city || ''} ${record.delivery.pincode || ''}`}</Text></div>}
+                    {record.items?.length ? record.items.map(item => (
+                      <div key={String(item.variantId || item.productId || item.name)}><Text>{item.name}</Text><Text>{` × ${item.quantity}`}</Text></div>
+                    )) : null}
+                  </StaffTableCell>
+                  <StaffTableCell label="Status / amount"><Text>{type === 'inventory' ? `${record.stock} available` : `${record.totals?.totalPaise != null ? moneyPaise(record.totals.totalPaise) : record.amountPaise != null ? moneyPaise(record.amountPaise) : '—'} · Payment: ${record.paymentStatus || '—'} · Order: ${record.fulfillmentStatus || record.status || '—'}`}</Text></StaffTableCell>
+                  {['inventory', 'orders'].includes(type) && account.permissions.includes(`${type}.update`) && (
+                    <StaffTableCell label="Update">
+                      <form className="staff-inline-form" key={`${record._id}:${record.paymentStatus}:${record.fulfillmentStatus}`} onSubmit={event => update(record, event)}>
+                        {type === 'inventory' ? (
+                          <LocalizedAttrs>
+                            <>
+                              <button type="button" className="button button-small" aria-label={`Decrease stock for ${record.sku}`} onClick={() => setStockDrafts(drafts => ({ ...drafts, [record._id]: Math.max(0, Number(drafts[record._id] ?? record.stock) - 1) }))}>−</button>
+                              <input type="number" name="value" aria-label={`Stock for ${record.sku}`} value={stockDrafts[record._id] ?? record.stock} onChange={event => setStockDrafts(drafts => ({ ...drafts, [record._id]: Math.max(0, Number(event.target.value || 0)) }))} min={0} max={10000000} required />
+                              <button type="button" className="button button-small" aria-label={`Increase stock for ${record.sku}`} onClick={() => setStockDrafts(drafts => ({ ...drafts, [record._id]: Math.min(10000000, Number(drafts[record._id] ?? record.stock) + 1) }))}>+</button>
+                            </>
+                          </LocalizedAttrs>
+                        ) : (
+                          <LocalizedAttrs>
+                            <>
+                              <select name="value" defaultValue={record.fulfillmentStatus || 'PLACED'} aria-label={`Fulfillment for ${record.publicId}`}>
+                                {['PLACED', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED'].map(status => <option value={status} key={status}><Text>{status}</Text></option>)}
+                              </select>
+                              {type === 'orders' && (
+                                <select name="paymentStatus" defaultValue={record.paymentStatus || 'PENDING'} aria-label={`Payment for ${record.publicId}`}>
+                                  {['PENDING', 'PAID', 'CANCELLED'].map(status => <option value={status} key={status}><Text>{status}</Text></option>)}
+                                </select>
+                              )}
+                              {type === 'orders' && record.paymentStatus === 'PENDING' && (
+                                <label><input type="checkbox" name="paymentConfirmed" /><Text>Payment received and verified</Text></label>
+                              )}
+                            </>
+                          </LocalizedAttrs>
+                        )}
+                        <button className="button button-small" disabled={busy}><Text>Save</Text></button>
+                      </form>
+                    </StaffTableCell>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
 }

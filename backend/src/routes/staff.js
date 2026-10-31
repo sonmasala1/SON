@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { requireDatabase } from '../middleware/requireDatabase.js';
-import { identifyCustomer } from '../middleware/session.js';
 import { authenticateStaff, staffOrigin, staffCsrf, requirePermission } from '../middleware/staffAccess.js';
 import { staffLogin, staffMfa, staffMe, staffLogout } from '../controllers/staffAuthController.js';
 import { listAdmins, inviteAdmin, editPermissions, editStatus, revokeSessions, auditLogs } from '../controllers/ownerManagementController.js';
@@ -17,7 +16,7 @@ import {
 export function staffRouter(realm) {
   const router = Router();
   router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
-  router.use(requireDatabase, identifyCustomer, staffOrigin);
+  router.use(requireDatabase, staffOrigin);
   const attempts = rateLimit({ windowMs: 15 * 60000, max: (req) => req.app.locals.config.nodeEnv === 'test' ? 1000 : realm === 'owner' ? 10 : 20, standardHeaders: true, legacyHeaders: false, message: { success: false, message: 'Too many authentication attempts. Please wait before trying again.' } });
   router.post('/auth/login', attempts, staffLogin(realm));
   router.post('/auth/mfa/verify', attempts, staffMfa(realm));

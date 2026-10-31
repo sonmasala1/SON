@@ -46,6 +46,27 @@ export async function beginStaffLogin(req, realm, adminId, password) {
   const { token } = await createChallenge(req, { accountId: account._id, realm, kind: 'LOGIN' });
   return { challengeToken: token, requiresMfa: true };
 }
+
+export async function loginStaffWithSecurityCode(req, realm, adminId, password, code) {
+  const account = await AdminAccount.findOne(staffLoginFilter(realm, adminId)).select('+passwordHash');
+  const passwordValid = await verifyPassword(account?.passwordHash, password);
+  const securityHash = realm === 'owner'
+    ? req.app.locals.config.ownerSecurityCodeHash
+    : req.app.locals.config.adminSecurityCodeHash;
+  const securityValid = /^\d{6}$/.test(code) && securityHash
+    ? await verifyPassword(securityHash, code)
+    : false;
+  const allowed = account && account.status === 'ACTIVE' && (realm === 'owner' ? account.role === 'OWNER' : account.role !== 'OWNER') && (!account.lockedUntil || account.lockedUntil <= new Date(securityNow(req)));
+  if (!passwordValid || !securityValid || !allowed) {
+    await failedLogin(req, account, adminId, 'STAFF_LOGIN_FAILED');
+    throw httpError(401, 'ID, password, or security code could not be verified.');
+  }
+  let result;
+  await mongoose.connection.transaction(async session => {
+    result = await makeSession(req, account, realm, 'ADMIN_SECURITY_CODE', session);
+  });
+  return result;
+}
 export async function makeSession(req, account, realm, method, session) {
   const token = randomToken(), now = securityNow(req);
   const [record] = await AdminSession.create([{ accountId: account._id, tokenHash: digest(token), realm, sessionVersion: account.sessionVersion, mfaMethod: method, expiresAt: new Date(now + (realm === 'owner' ? 4 : 8) * 3600000), lastSeenAt: new Date(now), ...metadata(req) }], { session });
@@ -61,11 +82,8 @@ export async function verifyStaffMfa(req, realm, token, code) {
   const challenge = await getChallenge(req, token, 'LOGIN', realm);
   const account = await AdminAccount.findById(challenge.accountId).select('+mfaSecretEncrypted +recoveryCodes');
   const recovery = /^[A-F0-9]{4}(?:-[A-F0-9]{4}){7}$/.test(code) ? account?.recoveryCodes.find(value => !value.usedAt && equals(value.hash, keyedDigest(code, req.app.locals.config))) : null;
-  const devMfaCode = process.env.ADMIN_MFA_CODE || '123456';
-  const isDevCode = req.app.locals.config?.nodeEnv !== 'production' && /^\d{6}$/.test(code) && (code === devMfaCode || code === '123456');
-  const currentStep = Math.floor(securityNow(req) / 30000);
   const step = /^\d{6}$/.test(code) && account?.mfaSecretEncrypted
-    ? (isDevCode ? Math.max(currentStep, (account.lastMfaStep || 0) + 1) : mfaStep(decryptSecret(account.mfaSecretEncrypted, req.app.locals.config, account.id), code, securityNow(req)))
+    ? mfaStep(decryptSecret(account.mfaSecretEncrypted, req.app.locals.config, account.id), code, securityNow(req))
     : null;
   if (!account || account.status !== 'ACTIVE' || (!recovery && (step === null || step <= account.lastMfaStep)) || account.lockedUntil > new Date(securityNow(req))) {
     await AdminChallenge.updateOne({ _id: challenge._id }, { $inc: { attempts: 1 } });
@@ -73,14 +91,23 @@ export async function verifyStaffMfa(req, realm, token, code) {
     throw httpError(401, 'The MFA code is invalid, already used, or the account is unavailable.');
   }
   let result;
-  await mongoose.connection.transaction(async session => {
-    await consumeChallenge(req, challenge, session);
-    const filter = recovery ? { recoveryCodes: { $elemMatch: { hash: recovery.hash, usedAt: null } } } : { lastMfaStep: { $lt: step } };
-    const change = recovery ? { $set: { 'recoveryCodes.$.usedAt': new Date(securityNow(req)) } } : { lastMfaStep: step };
-    const updated = await AdminAccount.findOneAndUpdate({ _id: account._id, status: 'ACTIVE', mfaEnabled: true, ...filter }, change, { new: true, session });
-    if (!updated) throw httpError(401, 'MFA verification could not be completed. Try a new code.');
-    result = await makeSession(req, updated, realm, recovery ? 'RECOVERY_CODE' : 'TOTP', session);
-    if (recovery) await audit(req, 'STAFF_RECOVERY_CODE_USED', { actorId: account._id, targetId: account.id }, session);
-  });
+  try {
+    await mongoose.connection.transaction(async session => {
+      await consumeChallenge(req, challenge, session);
+      const filter = recovery ? { recoveryCodes: { $elemMatch: { hash: recovery.hash, usedAt: null } } } : { lastMfaStep: { $lt: step } };
+      const change = recovery ? { $set: { 'recoveryCodes.$.usedAt': new Date(securityNow(req)) } } : { lastMfaStep: step };
+      const updated = await AdminAccount.findOneAndUpdate({ _id: account._id, status: 'ACTIVE', mfaEnabled: true, ...filter }, change, { new: true, session });
+      if (!updated) throw httpError(401, 'MFA verification could not be completed. Try a new code.');
+      result = await makeSession(req, updated, realm, recovery ? 'RECOVERY_CODE' : 'TOTP', session);
+      if (recovery) await audit(req, 'STAFF_RECOVERY_CODE_USED', { actorId: account._id, targetId: account.id }, session);
+    });
+  } catch (error) {
+    if (error.status) throw error;
+    req.logFailure = 'mfa_store_transaction_failed';
+    const storeError = httpError(503, 'The secure staff session could not be created. Please try again.');
+    storeError.code = 'STAFF_SESSION_STORE_UNAVAILABLE';
+    storeError.logReason = 'mfa_store_transaction_failed';
+    throw storeError;
+  }
   return result;
 }

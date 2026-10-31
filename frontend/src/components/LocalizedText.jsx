@@ -5,7 +5,11 @@ import { useLocale } from './LocaleProvider';
 // Explicit React boundaries localize text without mutating the DOM or any form/API values.
 export function Text({ children, error = false }) {
   const { t } = useLocale();
-  return <>{Children.map(children, child => typeof child === 'string' ? t(child, { error }) : child)}</>;
+  return <>{Children.map(children, child => {
+    if (typeof child !== 'string') return child;
+    if (!child.trim()) return null;
+    return t(child, { error });
+  })}</>;
 }
 export function LocalizedAttrs({ children, preserve = [] }) {
   const { locale, t } = useLocale();

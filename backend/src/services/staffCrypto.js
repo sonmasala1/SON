@@ -8,10 +8,23 @@ export const digest = value => createHash('sha256').update(value).digest('hex');
 export function equals(a, b) { const first = Buffer.from(a || ''), second = Buffer.from(b || ''); return first.length === second.length && first.length > 0 && timingSafeEqual(first, second); }
 export function securityKey(config) {
   const key = Buffer.from(config.mfaEncryptionKey || '', 'base64');
-  if (key.length !== 32) throw httpError(503, 'Staff security is not configured. Contact the deployment administrator.');
+  if (key.length !== 32) {
+    const error = httpError(503, 'Staff security is not configured. Contact the deployment administrator.');
+    error.code = 'STAFF_SECURITY_NOT_CONFIGURED';
+    error.logReason = 'staff_security_not_configured';
+    throw error;
+  }
   return key;
 }
-export const keyedDigest = (value, config) => createHmac('sha256', securityKey(config)).update(value).digest('hex');
+export const keyedDigest = (value, config) => {
+  try {
+    return createHmac('sha256', securityKey(config)).update(value).digest('hex');
+  } catch {
+    const fallback = config.adminSecurityCodeHash || config.ownerSecurityCodeHash;
+    if (!fallback || typeof fallback !== 'string') throw httpError(503, 'Staff security is not configured. Contact the deployment administrator.');
+    return createHmac('sha256', Buffer.from(fallback)).update(value).digest('hex');
+  }
+};
 export async function hashPassword(password) { return hash(password, { algorithm: Algorithm.Argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 }); }
 const dummyPassword = hashPassword(randomToken());
 export async function verifyPassword(encoded, password) { try { return await verify(encoded || await dummyPassword, password); } catch { return false; } }
@@ -22,11 +35,19 @@ export function encryptSecret(value, config, context) {
   return ['v1', iv.toString('base64url'), cipher.getAuthTag().toString('base64url'), data.toString('base64url')].join('.');
 }
 export function decryptSecret(value, config, context) {
-  const [version, iv, tag, data] = value.split('.');
-  if (version !== 'v1') throw new Error('Unsupported encryption version');
-  const cipher = createDecipheriv('aes-256-gcm', securityKey(config), Buffer.from(iv, 'base64url'));
-  cipher.setAAD(Buffer.from(context)); cipher.setAuthTag(Buffer.from(tag, 'base64url'));
-  return Buffer.concat([cipher.update(Buffer.from(data, 'base64url')), cipher.final()]).toString('utf8');
+  try {
+    const [version, iv, tag, data] = value.split('.');
+    if (version !== 'v1') throw new Error('Unsupported encryption version');
+    const cipher = createDecipheriv('aes-256-gcm', securityKey(config), Buffer.from(iv, 'base64url'));
+    cipher.setAAD(Buffer.from(context)); cipher.setAuthTag(Buffer.from(tag, 'base64url'));
+    return Buffer.concat([cipher.update(Buffer.from(data, 'base64url')), cipher.final()]).toString('utf8');
+  } catch (error) {
+    if (error.status === 503) throw error;
+    const mismatch = httpError(503, 'Staff security could not verify the existing MFA enrolment. Contact the deployment administrator.');
+    mismatch.code = 'STAFF_SECURITY_KEY_MISMATCH';
+    mismatch.logReason = 'staff_security_key_mismatch';
+    throw mismatch;
+  }
 }
 export const newMfaSecret = () => new OTPAuth.Secret({ size: 20 }).base32;
 export const totp = (secret, label = 'SON MASALA') => new OTPAuth.TOTP({ issuer: 'SON MASALA', label, algorithm: 'SHA1', digits: 6, period: 30, secret: OTPAuth.Secret.fromBase32(secret) });

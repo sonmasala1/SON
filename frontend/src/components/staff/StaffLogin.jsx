@@ -21,15 +21,12 @@ export default function StaffLogin({ realm }) {
     setBusy(true);
     setError("");
     try {
-      const challenge = await apiRequest(`${realm}/auth/login`, {
-        method: "POST",
-        body: JSON.stringify({ adminId, password }),
-      });
-      await apiRequest(`${realm}/auth/mfa/verify`, {
+      await apiRequest(`${realm}/auth/login`, {
         method: "POST",
         body: JSON.stringify({
-          challengeToken: challenge.challengeToken,
-          code: code.trim(),
+          adminId,
+          password,
+          securityCode: code.trim(),
         }),
       });
       setPassword("");
@@ -81,7 +78,7 @@ export default function StaffLogin({ realm }) {
         <p>
           <Text>
             {
-              "Use your configured staff ID, password, and current authenticator code."
+              "Use your configured staff ID, password, and private admin security code."
             }
           </Text>
         </p>
@@ -112,11 +109,11 @@ export default function StaffLogin({ realm }) {
             />
           </label>
           <label>
-            <Text>{"Authenticator code"}</Text>
+            <Text>{"Admin Security Code"}</Text>
             <LocalizedAttrs>
               <input
-                name="mfaCode"
-                aria-label="MFA verification code"
+                name="securityCode"
+                aria-label="Admin security code"
                 value={code}
                 onChange={(event) =>
                   setCode(event.target.value.toUpperCase().trim())
@@ -126,10 +123,10 @@ export default function StaffLogin({ realm }) {
                 pattern="[0-9]{6}"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                placeholder="Enter your current authenticator code"
+                placeholder="Enter your 6-digit security code"
               />
             </LocalizedAttrs>
-            <small><Text>Enter the current six-digit code from your authenticator app.</Text></small>
+            <small><Text>Enter your private six-digit admin security code.</Text></small>
           </label>
           <Text error>
             {error && (
@@ -148,7 +145,7 @@ export default function StaffLogin({ realm }) {
         {error && supportId && <p className="auth-support-reference"><Text>Support reference</Text>: <code>{supportId}</code></p>}
         <p className="staff-login-help">
           <Text>
-            Administrator accounts require an authorized invitation and completed authenticator enrollment. Public registration is unavailable.
+            Administrator access requires a valid Admin ID, password, and private security code. Public registration is unavailable.
           </Text>
         </p>
       </div>

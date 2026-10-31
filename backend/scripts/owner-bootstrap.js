@@ -19,7 +19,7 @@ let req;
 try {
   const env = getEnv();
   await connectDatabase(env.MONGODB_URI, env.MONGODB_DB_NAME); await initializeModels();
-  req = { ip: 'protected-cli', get: () => `protected-cli:${os.userInfo().username}`, app: { locals: { config: { mfaEncryptionKey: process.env.ADMIN_MFA_ENCRYPTION_KEY } } } };
+  req = { ip: 'protected-cli', get: () => `protected-cli:${os.userInfo().username}`, app: { locals: { config: { mfaEncryptionKey: process.env.STAFF_MFA_ENCRYPTION_KEY || process.env.ADMIN_MFA_ENCRYPTION_KEY } } } };
   const recovery = process.argv.includes('--recover');
   const proof = { expectedOsUser: recovery ? process.env.OWNER_RECOVERY_OS_USER || process.env.OWNER_BOOTSTRAP_OS_USER : process.env.OWNER_BOOTSTRAP_OS_USER, actualOsUser: os.userInfo().username, secretHash: recovery ? process.env.OWNER_RECOVERY_SECRET_SHA256 : process.env.OWNER_BOOTSTRAP_SECRET_SHA256, suppliedSecret: await ask(recovery ? 'One-time deployment recovery secret: ' : 'One-time owner setup secret: ', true) };
   verifyDeploymentProof(proof);

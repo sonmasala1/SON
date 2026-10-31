@@ -22,6 +22,7 @@ import { showWishlist, changeWishlist } from '../controllers/wishlistController.
 export default function createRoutes() {
 const router = Router();
 router.use('/admin', staffRouter('admin'));
+router.use('/owner', staffRouter('owner'));
 router.get('/health', getHealth);
 router.get('/ready', getReadiness);
 router.get('/products', requireDatabase, getProducts);
@@ -63,7 +64,7 @@ router.post('/checkout/place', requireCustomer, customerOrigin, placePayLaterOrd
 router.get('/checkout/attempts/:requestKey', requireCustomer, showCheckoutAttempt);
 router.patch('/orders/:id/cancel', requireCustomer, customerOrigin, cancelCustomerOrder);
 router.get('/orders/:id', requireCustomer, showOrder);
-router.post('/reviews', requireCustomer, createReview);
+router.post('/reviews', requireCustomer, customerOrigin, createReview);
 
 return router;
 }

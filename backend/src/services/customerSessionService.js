@@ -5,8 +5,8 @@ import { httpError } from '../utils/httpError.js';
 import { logEvent } from './logger.js';
 
 export const CUSTOMER_COOKIE = 'son_customer_session';
-export const CUSTOMER_IDLE_MS = 30 * 86400000;
-export const CUSTOMER_MAX_MS = 90 * 86400000;
+export const CUSTOMER_IDLE_MS = 24 * 60 * 60 * 1000;
+export const CUSTOMER_MAX_MS = 24 * 60 * 60 * 1000;
 export const customerNow = req => req.app.locals.config.clock?.() ?? Date.now();
 export const tokenHash = value => createHash('sha256').update(value).digest('hex');
 export const customerCookie = (req, maxAge) => ({ httpOnly: true, secure: req.app.locals.config.nodeEnv === 'production', sameSite: req.app.locals.config.crossSiteCookies ? 'none' : 'lax', path: '/', ...(maxAge === undefined ? {} : { maxAge }) });

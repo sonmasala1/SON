@@ -8,11 +8,20 @@ import { seedDemo } from '../scripts/seed-demo.js';
 import { beginOwnerBootstrap, completeOwnerBootstrap, recoverOwner } from '../src/services/ownerBootstrap.js';
 import { digest, randomToken, totp, newAdminId, newMfaSecret, decryptSecret } from '../src/services/staffCrypto.js';
 import { AdminAccount, AdminBootstrap, AdminInvitation, AdminSession, AdminAuditLog, AdminChallenge } from '../src/models/administration.js';
+import { securityKey } from '../src/services/staffCrypto.js';
 import User from '../src/models/User.js';
 import Review from '../src/models/Review.js';
 import Order from '../src/models/Order.js';
 import Payment from '../src/models/Payment.js';
 import Product from '../src/models/Product.js';
+
+test('staff MFA configuration reports missing key without accepting a fixed code', () => {
+  assert.throws(() => securityKey({ mfaEncryptionKey: '' }), error => (
+    error.status === 503
+    && error.code === 'STAFF_SECURITY_NOT_CONFIGURED'
+    && error.logReason === 'staff_security_not_configured'
+  ));
+});
 
 test('owner/staff MFA, session separation, invitations, permissions, and recovery', async t => {
   const testUri = process.env.MONGODB_TEST_URI;

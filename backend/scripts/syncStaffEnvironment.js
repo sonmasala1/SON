@@ -22,20 +22,23 @@ try {
     settings[key] = value;
   };
   if (args.includes('--prepare')) {
-    if (!settings.ADMIN_MFA_ENCRYPTION_KEY) set('ADMIN_MFA_ENCRYPTION_KEY', randomBytes(32).toString('base64'));
+    if (!settings.STAFF_MFA_ENCRYPTION_KEY && !settings.ADMIN_MFA_ENCRYPTION_KEY && fs.existsSync(envPath)) {
+      throw new Error('Refusing to generate a staff encryption key automatically. Configure the existing persistent key before syncing staff records.');
+    }
     for (const role of ['OWNER', 'ADMIN']) {
       const key = `${role}_MFA_SECRET`;
       if (!/^[A-Z2-7]{16,128}$/.test(settings[key] || '')) set(key, newMfaSecret());
     }
   }
   const entries = environmentStaff(settings);
-  securityKey({ mfaEncryptionKey: settings.ADMIN_MFA_ENCRYPTION_KEY });
+  const mfaEncryptionKey = settings.STAFF_MFA_ENCRYPTION_KEY || settings.ADMIN_MFA_ENCRYPTION_KEY;
+  securityKey({ mfaEncryptionKey });
   if (source !== fs.readFileSync(envPath, 'utf8')) fs.writeFileSync(envPath, source);
   Object.assign(process.env, settings);
   const env = getEnv();
   await connectDatabase(env.MONGODB_URI, env.MONGODB_DB_NAME);
   await initializeModels();
-  const req = { ip: 'protected-local-cli', get: () => 'staff-env-setup', app: { locals: { config: { nodeEnv: env.NODE_ENV, mfaEncryptionKey: settings.ADMIN_MFA_ENCRYPTION_KEY } } } };
+  const req = { ip: 'protected-local-cli', get: () => 'staff-env-setup', app: { locals: { config: { nodeEnv: env.NODE_ENV, mfaEncryptionKey } } } };
   console.log(JSON.stringify(await syncEnvironmentStaff(req, entries)));
   const setupPath = new URL('../.runtime/staff-mfa-setup.html', import.meta.url);
   fs.mkdirSync(new URL('../.runtime/', import.meta.url), { recursive: true });

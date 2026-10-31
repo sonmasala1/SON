@@ -36,6 +36,7 @@ export function StoreProvider({ children }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const pathname = usePathname();
+  const staffSection = /^\/(admin|owner)(\/|$)/.test(pathname);
 
   const refreshPromise = useRef(null);
   const refreshVersion = useRef(0);
@@ -176,12 +177,12 @@ export function StoreProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (initialized.current) return;
+    if (staffSection || initialized.current) return;
     initialized.current = true;
 
     setReady(true);
     void refreshCart();
-  }, [refreshCart]);
+  }, [refreshCart, staffSection]);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -192,7 +193,7 @@ export function StoreProvider({ children }) {
 
   useEffect(() => {
     const onFocus = () => {
-      if (!refreshPromise.current && cartMutationCount.current === 0) {
+      if (!staffSection && !refreshPromise.current && cartMutationCount.current === 0) {
         void refreshCart();
       }
     };
@@ -202,17 +203,17 @@ export function StoreProvider({ children }) {
     return () => {
       window.removeEventListener("focus", onFocus);
     };
-  }, [refreshCart]);
+  }, [refreshCart, staffSection]);
 
   useEffect(() => {
     if (previousPathname.current === pathname) return;
 
     previousPathname.current = pathname;
 
-    if (cartMutationCount.current === 0) {
+    if (!staffSection && initialized.current && cartMutationCount.current === 0) {
       void refreshCart();
     }
-  }, [pathname, refreshCart]);
+  }, [pathname, refreshCart, staffSection]);
 
   // Serialise cart writes so older responses cannot replace newer writes.
   const mutate = useCallback(
@@ -230,6 +231,7 @@ export function StoreProvider({ children }) {
       }
 
       cartMutationCount.current += 1;
+      refreshVersion.current += 1;
       setBusy(true);
       setError("");
 
@@ -409,9 +411,9 @@ export function StoreProvider({ children }) {
     >
       {children}
 
-      <CartDrawer />
+      {!staffSection && <CartDrawer />}
 
-      {noticeMessage && (
+      {!staffSection && noticeMessage && (
         <div className="toast" role="status" aria-live="polite">
           {noticeMessage}
         </div>

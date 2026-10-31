@@ -1,4 +1,5 @@
 import dns from 'node:dns';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,6 +7,7 @@ import { createApp } from './app.js';
 import { getEnv } from './config/env.js';
 import { maintainDatabaseConnection, disconnectDatabase } from './config/db.js';
 import { logEvent } from './services/logger.js';
+import { releaseExpiredPayLaterReservations } from './services/paymentService.js';
 
 // Ensure DNS resolvers (for Atlas SRV on Windows)
 dns.setServers(['1.1.1.1', '8.8.8.8']);
@@ -17,6 +19,20 @@ let lockAcquired = false;
 function processIsRunning(pid) {
   try { process.kill(pid, 0); return true; }
   catch (error) { return error.code === 'EPERM'; }
+}
+
+function processIsBackend(pid) {
+  if (!processIsRunning(pid)) return false;
+  if (process.platform === 'win32') {
+    try {
+      const output = execFileSync('wmic.exe', ['process', 'where', `ProcessId=${pid}`, 'get', 'CommandLine', '/value'], { encoding: 'utf8' });
+      return /SON[\\/](?:backend)[\\/].*(?:server\.js)/i.test(output.replace(/[\r\n]+/g, ' '));
+    } catch { return false; }
+  }
+  try {
+    const command = fs.readFileSync(`/proc/${pid}/cmdline`, 'utf8').replace(/\0/g, ' ');
+    return command.includes(path.join(backendRoot, 'src', 'server.js').replace(/\\/g, '/'));
+  } catch { return false; }
 }
 
 function acquireStartupLock() {
@@ -38,7 +54,7 @@ function acquireOrReportLock() {
     let pid = null;
     try { pid = Number(fs.readFileSync(path.join(startupLock, 'pid'), 'utf8').trim()); }
     catch {}
-    if (Number.isInteger(pid) && pid > 0 && processIsRunning(pid)) {
+    if (Number.isInteger(pid) && pid > 0 && processIsBackend(pid)) {
       logEvent('ERROR', 'server.start_blocked', {
         reason: 'backend_already_starting',
         port: getEnv().PORT,
@@ -60,7 +76,12 @@ process.once('unhandledRejection', fatalException);
 
 async function start() {
   const env = getEnv();
-  const app = createApp({ allowedOrigins: env.allowedOrigins, config: { nodeEnv: env.NODE_ENV, deliveryChargePaise: env.DELIVERY_CHARGE_PAISE, freeDeliveryThresholdPaise: env.FREE_DELIVERY_THRESHOLD_PAISE } });
+  const app = createApp({ allowedOrigins: env.allowedOrigins, config: { nodeEnv: env.NODE_ENV, staffAppOrigin: env.staffAppOrigin, mfaEncryptionKey: env.mfaEncryptionKey, adminSecurityCodeHash: env.ADMIN_SECURITY_CODE_HASH, ownerSecurityCodeHash: env.OWNER_SECURITY_CODE_HASH, deliveryChargePaise: env.DELIVERY_CHARGE_PAISE, freeDeliveryThresholdPaise: env.FREE_DELIVERY_THRESHOLD_PAISE } });
+  logEvent('INFO', 'staff.security.configuration', {
+    configured: Boolean(env.mfaEncryptionKey),
+    keyBytes: env.mfaEncryptionKey ? Buffer.from(env.mfaEncryptionKey, 'base64').length : 0,
+    keySource: process.env.STAFF_MFA_ENCRYPTION_KEY ? 'STAFF_MFA_ENCRYPTION_KEY' : process.env.ADMIN_MFA_ENCRYPTION_KEY ? 'ADMIN_MFA_ENCRYPTION_KEY' : 'none',
+  });
   await maintainDatabaseConnection(env.MONGODB_URI, env.MONGODB_DB_NAME).catch(() => {});
   const server = app.listen(env.PORT, '0.0.0.0');
   await new Promise((resolve, reject) => {
@@ -68,6 +89,10 @@ async function start() {
     server.once('error', reject);
   });
   logEvent('INFO', 'server.started', { port: env.PORT, environment: env.NODE_ENV });
+  const reservationCleanup = setInterval(() => {
+    releaseExpiredPayLaterReservations().catch(() => {});
+  }, 5 * 60 * 1000);
+  reservationCleanup.unref();
   let shuttingDown = false;
   const shutdown = async () => {
     if (shuttingDown) return;

@@ -13,7 +13,10 @@ export function staffOrigin(req, _res, next) {
 export function authenticateStaff(ownerOnly = false) {
   return async (req, res, next) => {
     try {
-      const candidates = [['owner', req.cookies.son_owner_session], ['admin', req.cookies.son_admin_session]];
+      // Prefer the session belonging to this section when both staff cookies exist.
+      const candidates = ownerOnly
+        ? [['owner', req.cookies.son_owner_session], ['admin', req.cookies.son_admin_session]]
+        : [['admin', req.cookies.son_admin_session], ['owner', req.cookies.son_owner_session]];
       for (const [realm, token] of candidates) {
         if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) continue;
         const session = await AdminSession.findOne({ tokenHash: digest(token), realm, revokedAt: null, expiresAt: { $gt: new Date(securityNow(req)) } });
@@ -30,7 +33,9 @@ export function authenticateStaff(ownerOnly = false) {
         if (ownerOnly && account.role !== 'OWNER') { await audit(req, 'OWNER_ACCESS_DENIED', { targetId: req.path, result: 'FAILURE' }); return next(httpError(403, 'Only the owner may manage staff access.')); }
         return next();
       }
-      next(httpError(req.user ? 403 : 401, req.user ? 'Customer accounts cannot access administration.' : 'Please sign in with an authorized staff account.'));
+      // Customer cookies never establish staff identity or trigger customer renewal here.
+      const customerOnly = Boolean(req.cookies.son_customer_session);
+      next(httpError(customerOnly ? 403 : 401, customerOnly ? 'Customer accounts cannot access administration. Please sign in with an authorized staff account.' : 'Please sign in with an authorized staff account.'));
     } catch (error) { next(error); }
   };
 }

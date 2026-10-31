@@ -42,6 +42,9 @@ export default function Header() {
   const [search, setSearch] = useState(false);
   const { cartCount, wishlist, setDrawerOpen, user } = useStore();
   const pathname = usePathname();
+  if (/^\/(admin|owner)(\/|$)/.test(pathname)) {
+    return /\/(login|accept-invitation)$/.test(pathname) ? <header className="staff-header"><div className="wrap staff-header-inner"><Brand /><span className="staff-header-label">Secure administration</span></div></header> : null;
+  }
   if (pathname === "/login")
     return (
       <header className="customer-auth-header">
