@@ -19,6 +19,7 @@ const schema = z.object({
   PRODUCTION_STAFF_APP_ORIGIN: z.string().url().optional(),
   STAFF_MFA_ENCRYPTION_KEY: z.string().optional(),
   ADMIN_MFA_ENCRYPTION_KEY: z.string().optional(),
+  CUSTOMER_AUTH_KEY: z.string().optional(),
   ADMIN_SECURITY_CODE_HASH: z.string().optional(),
   OWNER_SECURITY_CODE_HASH: z.string().optional(),
   ENABLE_DEMO_CHECKOUT: z.enum(['true', 'false']).default('false'),
@@ -33,7 +34,19 @@ const schema = z.object({
 });
 
 export function getEnv() {
-  const env = schema.parse(process.env);
+  let env;
+  try {
+    env = schema.parse(process.env);
+  } catch (error) {
+    const missing = error?.issues
+      ?.filter(issue => issue.code === 'invalid_type' && issue.received === 'undefined')
+      .map(issue => issue.path.join('.'))
+      .filter(Boolean);
+    const configError = new Error(missing?.length ? 'Required environment configuration is missing.' : 'Environment configuration is invalid.');
+    configError.code = missing?.length ? 'MISSING_ENV_VARIABLE' : 'INVALID_ENV_CONFIGURATION';
+    configError.variable = missing?.[0];
+    throw configError;
+  }
   const staffKey = process.env.STAFF_MFA_ENCRYPTION_KEY;
   const adminKey = process.env.ADMIN_MFA_ENCRYPTION_KEY;
   if (staffKey && adminKey && staffKey !== adminKey) throw new Error('STAFF_MFA_ENCRYPTION_KEY and ADMIN_MFA_ENCRYPTION_KEY must match when both are configured.');
@@ -44,6 +57,19 @@ export function getEnv() {
     const configured = env.mfaEncryptionKey.replace(/=+$/, '');
     if (decoded.length !== 32 || canonical !== configured) {
       throw new Error('Staff MFA encryption key must be valid Base64 encoding of exactly 32 bytes.');
+    }
+    if (process.env.CUSTOMER_AUTH_KEY) {
+      const decoded = Buffer.from(process.env.CUSTOMER_AUTH_KEY, 'base64');
+      const canonical = decoded.toString('base64').replace(/=+$/, '');
+      const configured = process.env.CUSTOMER_AUTH_KEY.replace(/=+$/, '');
+      if (decoded.length !== 32 || canonical !== configured) {
+        const error = new Error('Customer authentication key must be valid Base64 encoding of exactly 32 bytes.');
+        error.code = 'INVALID_SECURITY_CONFIGURATION';
+        throw error;
+      }
+      env.customerAuthKey = process.env.CUSTOMER_AUTH_KEY;
+    } else {
+      env.customerAuthKey = '';
     }
   }
   const production = env.NODE_ENV === 'production';
@@ -70,8 +96,14 @@ export function getEnv() {
   if (production) {
     const origin = new URL(env.staffAppOrigin);
     const rpId = process.env.ADMIN_WEBAUTHN_RP_ID || origin.hostname;
-    if (origin.protocol !== 'https:' || !(origin.hostname === rpId || origin.hostname.endsWith(`.${rpId}`)) || Buffer.from(env.mfaEncryptionKey, 'base64').length !== 32) throw new Error('Production staff security requires an HTTPS origin, a matching RP ID, and a 32-byte encryption key.');
+    if (origin.protocol !== 'https:' || !(origin.hostname === rpId || origin.hostname.endsWith(`.${rpId}`))) throw new Error('Production staff security requires an HTTPS origin and a matching RP ID.');
     if (!env.MONGODB_URI || !env.MONGODB_DB_NAME) throw new Error('Production requires MONGODB_URI and MONGODB_DB_NAME.');
+    if (!env.ADMIN_SECURITY_CODE_HASH) {
+      const error = new Error('Production requires the hashed Admin security code.');
+      error.code = 'MISSING_ENV_VARIABLE';
+      error.variable = 'ADMIN_SECURITY_CODE_HASH';
+      throw error;
+    }
   }
   const scopedCors = production ? process.env.PRODUCTION_CORS_ORIGINS : process.env.LOCAL_CORS_ORIGINS;
   const configured = (scopedCors || env.CORS_ORIGINS || env.CORS_ORIGIN || '')

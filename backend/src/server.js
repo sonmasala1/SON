@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
 import { getEnv } from './config/env.js';
+import { classifyStartupFailure } from './config/startupDiagnostics.js';
 import { maintainDatabaseConnection, disconnectDatabase } from './config/db.js';
 import { logEvent } from './services/logger.js';
 import { releaseExpiredPayLaterReservations } from './services/paymentService.js';
@@ -76,7 +77,7 @@ process.once('unhandledRejection', fatalException);
 
 async function start() {
   const env = getEnv();
-  const app = createApp({ allowedOrigins: env.allowedOrigins, config: { nodeEnv: env.NODE_ENV, staffAppOrigin: env.staffAppOrigin, mfaEncryptionKey: env.mfaEncryptionKey, adminSecurityCodeHash: env.ADMIN_SECURITY_CODE_HASH, ownerSecurityCodeHash: env.OWNER_SECURITY_CODE_HASH, deliveryChargePaise: env.DELIVERY_CHARGE_PAISE, freeDeliveryThresholdPaise: env.FREE_DELIVERY_THRESHOLD_PAISE } });
+  const app = createApp({ allowedOrigins: env.allowedOrigins, config: { nodeEnv: env.NODE_ENV, staffAppOrigin: env.staffAppOrigin, mfaEncryptionKey: env.mfaEncryptionKey, customerAuthKey: env.customerAuthKey, adminSecurityCodeHash: env.ADMIN_SECURITY_CODE_HASH, ownerSecurityCodeHash: env.OWNER_SECURITY_CODE_HASH, deliveryChargePaise: env.DELIVERY_CHARGE_PAISE, freeDeliveryThresholdPaise: env.FREE_DELIVERY_THRESHOLD_PAISE } });
   logEvent('INFO', 'staff.security.configuration', {
     configured: Boolean(env.mfaEncryptionKey),
     keyBytes: env.mfaEncryptionKey ? Buffer.from(env.mfaEncryptionKey, 'base64').length : 0,
@@ -120,7 +121,8 @@ if (acquireOrReportLock() !== false) {
       const reason = error.code === 'EADDRINUSE' ? 'port_already_in_use' : error.code === 'EACCES' ? 'port_access_denied' : error.code === 'ENOTFOUND' ? 'host_not_found' : 'bind_error';
       logEvent('ERROR', 'server.bind_failed', { port: env.PORT, host: '0.0.0.0', code: error.code || 'UNKNOWN', reason, message: 'Server could not bind the configured port.' });
     } else {
-      logEvent('ERROR', 'server.start_failed', { reason: error?.code === 'ENOENT' ? 'configuration_missing' : 'startup_error', code: error?.code || 'UNKNOWN' });
+      const reason = classifyStartupFailure(error);
+      logEvent('ERROR', 'server.start_failed', { reason, code: error?.code || 'UNKNOWN' });
     }
     await disconnectDatabase().catch(() => {});
     process.exitCode = 1;

@@ -16,6 +16,8 @@ export function createApp({ allowedOrigins = ['http://localhost:3000', 'https://
   app.set('trust proxy', 1);
   app.locals.config = {
     mfaEncryptionKey: process.env.STAFF_MFA_ENCRYPTION_KEY || process.env.ADMIN_MFA_ENCRYPTION_KEY,
+    customerAuthKey: process.env.CUSTOMER_AUTH_KEY,
+    customerAuthKey: process.env.CUSTOMER_AUTH_KEY,
     adminSecurityCodeHash: process.env.ADMIN_SECURITY_CODE_HASH,
     ownerSecurityCodeHash: process.env.OWNER_SECURITY_CODE_HASH,
     crossSiteCookies: process.env.NODE_ENV === 'production'

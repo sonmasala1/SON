@@ -8,7 +8,7 @@ import { seedDemo } from '../scripts/seed-demo.js';
 import { beginOwnerBootstrap, completeOwnerBootstrap, recoverOwner } from '../src/services/ownerBootstrap.js';
 import { digest, randomToken, totp, newAdminId, newMfaSecret, decryptSecret } from '../src/services/staffCrypto.js';
 import { AdminAccount, AdminBootstrap, AdminInvitation, AdminSession, AdminAuditLog, AdminChallenge } from '../src/models/administration.js';
-import { securityKey } from '../src/services/staffCrypto.js';
+import { securityKey, customerDigest, encryptCustomerSecret, decryptCustomerSecret } from '../src/services/staffCrypto.js';
 import User from '../src/models/User.js';
 import Review from '../src/models/Review.js';
 import Order from '../src/models/Order.js';
@@ -21,6 +21,16 @@ test('staff MFA configuration reports missing key without accepting a fixed code
     && error.code === 'STAFF_SECURITY_NOT_CONFIGURED'
     && error.logReason === 'staff_security_not_configured'
   ));
+});
+
+test('customer authentication hashing and encryption are independent of staff MFA', () => {
+  const config = { adminSecurityCodeHash: '$argon2d$test-fixed-admin-code' };
+  const first = customerDigest('customer@example.com', config);
+  assert.match(first, /^[a-f0-9]{64}$/);
+  assert.equal(first, customerDigest('customer@example.com', config));
+  assert.notEqual(first, customerDigest('other@example.com', config));
+  const encrypted = encryptCustomerSecret('customer-state', config, 'customer-test');
+  assert.equal(decryptCustomerSecret(encrypted, config, 'customer-test'), 'customer-state');
 });
 
 test('owner/staff MFA, session separation, invitations, permissions, and recovery', async t => {

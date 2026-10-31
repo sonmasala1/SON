@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { randomBytes, randomInt } from 'node:crypto';
 import { CustomerOtp, CustomerAuthThrottle } from '../models/customerAuthentication.js';
-import { keyedDigest, equals } from './staffCrypto.js';
+import { customerDigest, equals } from './staffCrypto.js';
 import { customerNow, tokenHash } from './customerSessionService.js';
 import { deliver } from './authDelivery.js';
 import { httpError } from '../utils/httpError.js';
@@ -17,7 +17,7 @@ export async function activeCustomerChallenge(req, token, { allowExpired = false
 }
 export async function sendCustomerOtp(req, { fullName, phone, channel }) {
   const now = customerNow(req), code = String(randomInt(1000000)).padStart(6, '0'), token = randomBytes(32).toString('base64url'), id = new mongoose.Types.ObjectId();
-  const throttleId = keyedDigest(`customer-mobile:${phone}`, req.app.locals.config);
+  const throttleId = customerDigest(`customer-mobile:${phone}`, req.app.locals.config);
   // The per-number bucket and challenge are written in one transaction, across API processes.
   for (let attempt = 0; ; attempt++) {
     try {
@@ -30,7 +30,7 @@ export async function sendCustomerOtp(req, { fullName, phone, channel }) {
         if (throttle.sends >= 6) throw Object.assign(httpError(429, 'Too many codes requested for this mobile number. Please try again later.'), { retryAfter: Math.ceil((throttle.windowStartedAt.getTime() + 3600000 - now) / 1000) });
         throttle.sends += 1; throttle.lastSentAt = new Date(now); throttle.expiresAt = new Date(now + 2 * 3600000); await throttle.save({ session });
         await CustomerOtp.updateMany({ phone, status: { $in: ['ACTIVE', 'PENDING'] } }, { status: 'SUPERSEDED' }, { session });
-        await CustomerOtp.create([{ _id: id, tokenHash: tokenHash(token), phone, fullName, channel, codeHash: keyedDigest(`${id}:${code}`, req.app.locals.config), expiresAt: new Date(now + OTP_EXPIRY_MS), purgeAt: new Date(now + 86400000) }], { session });
+        await CustomerOtp.create([{ _id: id, tokenHash: tokenHash(token), phone, fullName, channel, codeHash: customerDigest(`${id}:${code}`, req.app.locals.config), expiresAt: new Date(now + OTP_EXPIRY_MS), purgeAt: new Date(now + 86400000) }], { session });
       });
       break;
     } catch (error) { if (error.code === 11000 && attempt < 2) continue; throw error; }
@@ -46,7 +46,7 @@ export async function verifyCustomerCode(req, token, code) {
   const challenge = await activeCustomerChallenge(req, token);
   const secret = await CustomerOtp.findOneAndUpdate({ _id: challenge._id, status: 'ACTIVE', attempts: { $lt: 5 }, expiresAt: { $gt: new Date(customerNow(req)) } }, { $inc: { attempts: 1 } }, { new: true }).select('+codeHash');
   if (!secret) throw httpError(429, 'Too many verification attempts. Please request a new code.');
-  if (!equals(secret.codeHash, keyedDigest(`${challenge.id}:${code}`, req.app.locals.config))) {
+  if (!equals(secret.codeHash, customerDigest(`${challenge.id}:${code}`, req.app.locals.config))) {
     throw httpError(401, 'That verification code is incorrect. Please try again.');
   }
   if (req.app.locals.config.nodeEnv === 'production' && challenge.deliverySource === 'DEVELOPMENT_PREVIEW') throw httpError(401, 'Please request a new verification code.');

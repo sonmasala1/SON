@@ -5,6 +5,26 @@ import { newMfaSecret, mfaStep, totp } from '../src/services/staffCrypto.js';
 import { hashPassword } from '../src/services/staffCrypto.js';
 import { AdminAccount, AdminChallenge } from '../src/models/administration.js';
 import { beginStaffLogin, loginStaffWithSecurityCode } from '../src/services/staffAuthService.js';
+import { getEnv } from '../src/config/env.js';
+import { classifyStartupFailure } from '../src/config/startupDiagnostics.js';
+
+test('production fixed-code startup does not require legacy MFA encryption', () => {
+  const previous = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
+  try {
+    const env = getEnv();
+    assert.equal(env.NODE_ENV, 'production');
+    assert.equal(env.mfaEncryptionKey, '');
+  } finally {
+    if (previous === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previous;
+  }
+});
+test('startup failures are classified without exposing exception details', () => {
+  assert.equal(classifyStartupFailure(Object.assign(new Error('secret detail'), { code: 'MISSING_ENV_VARIABLE' })), 'MISSING_ENV_VARIABLE');
+  assert.equal(classifyStartupFailure(new Error('Staff MFA encryption key is invalid')), 'INVALID_SECURITY_CONFIGURATION');
+  assert.equal(classifyStartupFailure(Object.assign(new Error('MongoDB URI is invalid'), { code: 'MONGODB_URI_INVALID' })), 'DATABASE_CONNECTION_FAILED');
+});
 
 const configured = () => ({ NODE_ENV: 'development', ADMIN_ID: 'admin-local', ADMIN_PASSWORD: 'random-local-password', ADMIN_MFA_SECRET: newMfaSecret(), OWNER_USER_ID: 'owner-local', OWNER_PASSWORD: 'different-local-password', OWNER_MFA_SECRET: newMfaSecret() });
 test('configured IDs are normalized and roles cannot be selected by the login client', () => {

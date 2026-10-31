@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { randomBytes, randomInt } from 'node:crypto';
 import { EmailOtp, EmailThrottle, EmailDispatch } from '../models/emailAuthentication.js';
-import { keyedDigest, equals, encryptSecret, decryptSecret } from './staffCrypto.js';
+import { customerDigest, equals, encryptCustomerSecret, decryptCustomerSecret } from './staffCrypto.js';
 import { customerNow, tokenHash } from './customerSessionService.js';
 import { sendOtpEmail } from './emailService.js';
 import { httpError } from '../utils/httpError.js';
@@ -16,8 +16,8 @@ export async function idempotentEmailDispatch(req, input, dispatch) {
   if (!key) return dispatch();
   if (!/^[A-Za-z0-9_-]{16,128}$/.test(key)) throw httpError(422, 'Invalid request key. Please refresh and try again.');
   const config = req.app.locals.config;
-  const id = keyedDigest(`email-dispatch:${key}`, config);
-  const fingerprint = keyedDigest(JSON.stringify([req.path, input]), config);
+  const id = customerDigest(`email-dispatch:${key}`, config);
+  const fingerprint = customerDigest(JSON.stringify([req.path, input]), config);
   try {
     await EmailDispatch.create({ _id: id, fingerprint, status: 'PENDING', expiresAt: new Date(customerNow(req) + 86400000) });
   } catch (error) {
@@ -25,7 +25,7 @@ export async function idempotentEmailDispatch(req, input, dispatch) {
     const prior = await EmailDispatch.findById(id).select('+responseEncrypted');
     if (!prior || prior.fingerprint !== fingerprint) throw httpError(409, 'This request key was already used for another action.');
     if (prior.status === 'COMPLETE') {
-      const result = JSON.parse(decryptSecret(prior.responseEncrypted, config, id));
+      const result = JSON.parse(decryptCustomerSecret(prior.responseEncrypted, config, id));
       const challenge = await EmailOtp.findOne({ tokenHash: tokenHash(result.challengeToken), status: 'ACTIVE', expiresAt: { $gt: new Date(customerNow(req)) } });
       if (!challenge) throw httpError(409, 'This request has already completed. Please request a new code.');
       logEvent('INFO', 'otp.idempotency.replayed', {}, req);
@@ -37,7 +37,7 @@ export async function idempotentEmailDispatch(req, input, dispatch) {
   }
   try {
     const result = await dispatch();
-    await EmailDispatch.updateOne({ _id: id }, { status: 'COMPLETE', responseEncrypted: encryptSecret(JSON.stringify(result), config, id) });
+    await EmailDispatch.updateOne({ _id: id }, { status: 'COMPLETE', responseEncrypted: encryptCustomerSecret(JSON.stringify(result), config, id) });
     return result;
   } catch (error) {
     await EmailDispatch.updateOne({ _id: id }, { status: 'FAILED', failureStatus: error.status || 503, failureMessage: error.status ? error.message : 'Email delivery could not be confirmed. Please wait before requesting a new code.', retryAfter: error.retryAfter });
@@ -81,7 +81,7 @@ export async function sendEmailOtp(req, { fullName, phone, email: rawEmail }) {
   const code  = String(randomInt(1000000)).padStart(6, '0');
   const token = randomBytes(32).toString('base64url');
   const id    = new mongoose.Types.ObjectId();
-  const throttleId = keyedDigest(`customer-email:${email}`, req.app.locals.config);
+  const throttleId = customerDigest(`customer-email:${email}`, req.app.locals.config);
 
   for (let attempt = 0; ; attempt++) {
     try {
@@ -103,7 +103,7 @@ export async function sendEmailOtp(req, { fullName, phone, email: rawEmail }) {
 
         await EmailOtp.create([{
           _id: id, tokenHash: tokenHash(token), email, fullName, pendingPhone: phone,
-          codeHash: keyedDigest(`${id}:${code}`, req.app.locals.config),
+          codeHash: customerDigest(`${id}:${code}`, req.app.locals.config),
           expiresAt: new Date(now + EMAIL_OTP_EXPIRY_MS),
           purgeAt:   new Date(now + 86400000),
         }], { session });
@@ -152,9 +152,8 @@ export async function verifyEmailCode(req, token, code) {
     await activeEmailChallenge(req, token);
     throw httpError(429, 'Too many verification attempts. Please request a new code.');
   }
-  if (!equals(secret.codeHash, keyedDigest(`${challenge.id}:${code}`, req.app.locals.config))) {
+  if (!equals(secret.codeHash, customerDigest(`${challenge.id}:${code}`, req.app.locals.config))) {
     throw httpError(401, 'That verification code is incorrect. Please try again.');
   }
   return challenge;
 }
-

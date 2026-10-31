@@ -4,7 +4,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { z } from 'zod';
 import GoogleLoginAttempt from '../models/GoogleLoginAttempt.js';
 import User from '../models/User.js';
-import { encryptSecret, decryptSecret, equals } from './staffCrypto.js';
+import { encryptCustomerSecret, decryptCustomerSecret, equals } from './staffCrypto.js';
 import { customerNow, tokenHash, createCustomerSession } from './customerSessionService.js';
 import { mergeGuestCart } from './cartService.js';
 import { httpError } from '../utils/httpError.js';
@@ -37,7 +37,7 @@ export function googleClient(req, settings) {
 export async function beginGoogleLogin(req, returnTo) {
   const settings = googleConfiguration(req), id = new mongoose.Types.ObjectId();
   const state = randomToken(), nonce = randomToken(), browserToken = randomToken(), verifier = randomToken();
-  await GoogleLoginAttempt.create({ _id: id, stateHash: tokenHash(state), browserHash: tokenHash(browserToken), nonceHash: tokenHash(nonce), verifierEncrypted: encryptSecret(verifier, req.app.locals.config, String(id)), returnTo: customerReturnTo(returnTo), expiresAt: new Date(customerNow(req) + GOOGLE_FLOW_MS) });
+  await GoogleLoginAttempt.create({ _id: id, stateHash: tokenHash(state), browserHash: tokenHash(browserToken), nonceHash: tokenHash(nonce), verifierEncrypted: encryptCustomerSecret(verifier, req.app.locals.config, String(id)), returnTo: customerReturnTo(returnTo), expiresAt: new Date(customerNow(req) + GOOGLE_FLOW_MS) });
   const authorizationUrl = googleClient(req, settings).generateAuthUrl({ scope: ['openid', 'email', 'profile'], access_type: 'online', prompt: 'select_account', state, nonce, code_challenge_method: 'S256', code_challenge: createHash('sha256').update(verifier).digest('base64url') });
   return { authorizationUrl, browserToken };
 }
@@ -50,7 +50,7 @@ export async function consumeGoogleFlow(req, state) {
 }
 export async function verifyGoogleCode(req, code, flow) {
   const settings = googleConfiguration(req), client = googleClient(req, settings);
-  const codeVerifier = decryptSecret(flow.verifierEncrypted, req.app.locals.config, flow.id);
+  const codeVerifier = decryptCustomerSecret(flow.verifierEncrypted, req.app.locals.config, flow.id);
   const exchange = req.app.locals.config.nodeEnv === 'test' && req.app.locals.config.googleTestCodeExchange;
   const result = exchange ? await exchange({ code, codeVerifier, redirectUri: settings.redirectUri }) : await client.getToken({ code, codeVerifier });
   if (!result?.tokens?.id_token) throw httpError(401, 'Google sign-in could not be verified.');
