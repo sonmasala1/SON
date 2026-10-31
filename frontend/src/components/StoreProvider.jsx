@@ -66,7 +66,7 @@ export function StoreProvider({ children }) {
       setWishlistError("");
     }
 
-    if (refreshPromise.current && !options.clearCustomer) {
+    if (refreshPromise.current && !options.clearCustomer && !options.force) {
       return refreshPromise.current;
     }
 

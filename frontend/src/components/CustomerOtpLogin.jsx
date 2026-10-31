@@ -77,7 +77,7 @@ export default function CustomerOtpLogin() {
 
   async function finishLogin() {
     completed.current = true;
-    try { await refreshCart(); } finally { router.replace(destination); }
+    try { await refreshCart({ force: true }); } finally { router.replace(destination); }
   }
 
   async function dispatchEmail(endpoint, payload) {
