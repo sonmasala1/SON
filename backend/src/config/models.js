@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import Product from '../models/Product.js';
-import Subscriber from '../models/Subscriber.js';
 import Category from '../models/Category.js';
 import ProductVariant from '../models/ProductVariant.js';
 import Cart from '../models/Cart.js';
@@ -22,7 +21,7 @@ export const modelsAreReady = () => Boolean(initializedDatabase && initializedDa
 
 export async function initializeModels() {
   // Create collections and indexes only after the connection is established.
-  for (const model of [Product, Subscriber, Category, ProductVariant, Cart, User, Wishlist, Order, Payment, Review, InventoryReservation, StockMovement, CustomerSession, CustomerOtp, CustomerAuthThrottle, EmailOtp, EmailThrottle, EmailDispatch, GoogleLoginAttempt, ...administrationModels]) {
+  for (const model of [Product, Category, ProductVariant, Cart, User, Wishlist, Order, Payment, Review, InventoryReservation, StockMovement, CustomerSession, CustomerOtp, CustomerAuthThrottle, EmailOtp, EmailThrottle, EmailDispatch, GoogleLoginAttempt, ...administrationModels]) {
     await model.createCollection();
     await model.createIndexes();
   }

@@ -4,7 +4,7 @@ import { environmentStaff } from '../src/services/environmentStaff.js';
 import { newMfaSecret, mfaStep, totp } from '../src/services/staffCrypto.js';
 import { hashPassword } from '../src/services/staffCrypto.js';
 import { AdminAccount, AdminChallenge } from '../src/models/administration.js';
-import { beginStaffLogin, loginStaffWithSecurityCode } from '../src/services/staffAuthService.js';
+import { beginStaffLogin } from '../src/services/staffAuthService.js';
 import { getEnv } from '../src/config/env.js';
 import { classifyStartupFailure } from '../src/config/startupDiagnostics.js';
 

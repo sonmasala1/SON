@@ -19,6 +19,9 @@ export function storefrontFilter(includeDemo = false, includeSamples = false) {
 }
 export async function hydrateProduct(product, session = null, includeSamples = false) {
   const canonical = await ProductVariant.find({ productId: product._id }).sort({ weightGrams: 1 }).session(session).lean();
+  return hydrateVariants(product, canonical, includeSamples);
+}
+function hydrateVariants(product, canonical, includeSamples = false) {
   const activeCanonical = canonical.filter(value => value.isActive !== false && (product.isDemo || !value.isDemo) && (includeSamples || !value.isSample));
   const embedded = (product.variants || []).filter(value => !value.isDemo && (includeSamples || (!product.isSample && !value.isSample)));
   const variants = !includeSamples && product.isSample ? [] : canonical.length ? activeCanonical.map(value => {
@@ -29,6 +32,17 @@ export async function hydrateProduct(product, session = null, includeSamples = f
     return { ...value, inventorySource: 'EMBEDDED', pricePaise: value.pricePaise ?? toPaise(value.price), mrpPaise: value.mrpPaise ?? toPaise(value.mrp ?? value.price), unitPricePaise };
   });
   return { ...product, isDemo: !!product.isDemo, variants };
+}
+export async function hydrateProducts(records, includeSamples = false) {
+  if (!records.length) return [];
+  const variants = await ProductVariant.find({ productId: { $in: records.map(product => product._id) } }).sort({ weightGrams: 1 }).lean();
+  const byProduct = new Map();
+  for (const variant of variants) {
+    const key = String(variant.productId);
+    if (!byProduct.has(key)) byProduct.set(key, []);
+    byProduct.get(key).push(variant);
+  }
+  return records.map(product => hydrateVariants(product, byProduct.get(String(product._id)) || [], includeSamples));
 }
 export async function listProducts({ q, category, page, limit, featured, offers, sort }, { includeDemo = false, includeSamples = false } = {}) {
   const filter = storefrontFilter(includeDemo, includeSamples);
@@ -68,7 +82,7 @@ export async function listProducts({ q, category, page, limit, featured, offers,
   } else {
     [records, total] = await Promise.all([Product.find(filter).sort({ featured: -1, name: 1 }).skip((page - 1) * limit).limit(limit).lean(), Product.countDocuments(filter)]);
   }
-  const products = await Promise.all(records.map(product => hydrateProduct(product, null, includeSamples)));
+  const products = await hydrateProducts(records, includeSamples);
   return { products, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
 }
 export async function findProduct(slug, { includeDemo = false, includeSamples = false } = {}) {

@@ -1,9 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { apiRequest, getProducts } from './api';
+import { apiRequest, apiUrl, getProducts } from './api';
 
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 describe('shared API client', () => {
+  it('keeps local browser requests on port 3000 even with the old proxy flag disabled', () => {
+    vi.stubGlobal('window', {});
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('NEXT_PUBLIC_API_PROXY', 'false');
+    expect(apiUrl('cart')).toBe('/api/v1/cart');
+  });
   it('sends a request ID and preserves the backend correlation ID on errors', async () => {
     const requestId = crypto.randomUUID();
     const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: 'Please try again' }), { status: 401, headers: { 'X-Request-ID': requestId } }));

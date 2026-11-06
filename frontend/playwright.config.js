@@ -3,6 +3,6 @@ module.exports = defineConfig({
   testDir: './e2e',
   timeout: 30000,
   workers: 1,
-  use: { baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000', channel: 'chrome', headless: true, screenshot: 'only-on-failure', trace: 'retain-on-failure' },
+  use: { baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000', browserName: process.env.E2E_BROWSER || 'chromium', ...(process.env.E2E_BROWSER === 'webkit' ? {} : { channel: process.env.E2E_CHANNEL || 'chrome' }), headless: true, screenshot: 'only-on-failure', trace: 'retain-on-failure' },
   reporter: 'list',
 });

@@ -54,7 +54,7 @@ function acquireOrReportLock() {
     if (error.code !== 'EEXIST') throw error;
     let pid = null;
     try { pid = Number(fs.readFileSync(path.join(startupLock, 'pid'), 'utf8').trim()); }
-    catch {}
+    catch { /* A missing or unreadable PID is treated as a stale startup lock. */ }
     if (Number.isInteger(pid) && pid > 0 && processIsBackend(pid)) {
       logEvent('ERROR', 'server.start_blocked', {
         reason: 'backend_already_starting',

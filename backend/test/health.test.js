@@ -40,7 +40,7 @@ test('CORS allows both approved origins and rejects another origin', async (t) =
   const response = await fetch(`${base}/health`, { headers: { Origin: 'https://untrusted.example' } });
   assert.equal(response.status, 403);
   assert.equal(response.headers.get('access-control-allow-origin'), null);
-  const preflight = await fetch(`${base}/newsletter`, { method: 'OPTIONS', headers: { Origin: 'https://son-dusky.vercel.app', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type' } });
+  const preflight = await fetch(`${base}/auth/email/send-otp`, { method: 'OPTIONS', headers: { Origin: 'https://son-dusky.vercel.app', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type' } });
   assert.equal(preflight.status, 204);
   assert.equal(preflight.headers.get('access-control-allow-credentials'), 'true');
 });

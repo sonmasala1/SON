@@ -20,11 +20,17 @@ export async function getReviews(req, res, next) {
 }
 export async function createReview(req, res, next) {
   try {
+    if (!req.user.emailVerified && !req.user.phoneVerified) throw httpError(403, 'Verify your email or mobile number before submitting a review.');
     const input = parse(reviewInput, req.body);
     if (!await Product.exists({ ...publishedFilter(false, false), _id: input.productId })) throw httpError(404, 'Product not found.');
+    if (await Review.exists({ userId: req.user._id, productId: input.productId })) throw httpError(409, 'You have already reviewed this product.');
     // Demo orders never qualify for a verified purchase badge.
     const verifiedPurchase = !!await Order.exists({ userId: req.user._id, isDemo: false, paymentStatus: 'PAID', 'items.productId': input.productId });
-    const review = await Review.create({ ...input, userId: req.user._id, approved: false, verifiedPurchase });
+    const review = await Review.create({ ...input, userId: req.user._id, approved: false, verifiedPurchase, submission: {
+      channel: 'customer-api', environment: req.app.locals.config.nodeEnv,
+      requestId: req.requestId, origin: req.get('origin'),
+      verificationSource: req.customerSession?.verificationSource,
+    } });
     res.status(201).json({ success: true, message: 'Thank you. Your review is awaiting moderation.', reviewId: review.id });
   } catch (error) { next(error.code === 11000 ? httpError(409, 'You have already reviewed this product.') : error); }
 }

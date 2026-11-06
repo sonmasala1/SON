@@ -109,28 +109,21 @@ input[type='checkbox'], input[type='radio'] { width: 20px; height: 20px; flex-sh
 .section-heading { flex-wrap: wrap; align-items: center; }
 .section-heading .text-link { max-width: 100%; }
 .section-heading h2, .shopping-home .section-heading h2, .review-heading h2,
-.story-copy h2, .newsletter h2, .prose-page h2, .recipe-method h2,
+.story-copy h2, .prose-page h2, .recipe-method h2,
 .delivery-form h2, .order-review h2, .customer-order-history h2 { font-size: var(--text-heading); }
 .category-card { min-height: 330px; }
 .category-copy p { font-size: var(--text-support); max-width: 100%; }
 .category-copy { right: 30px; }
 .category-arrow svg { width: 24px; height: 24px; }
 .why-item p, .why-title > p:last-child, .story-copy > p:not(.eyebrow),
-.recipe-copy p, .newsletter p:not(.eyebrow), .catalog-state p, .contact-grid p { font-size: var(--text-body); }
+.recipe-copy p, .catalog-state p, .contact-grid p { font-size: var(--text-body); }
 .recipe-copy > span:first-child { color: #6c5c35; }
 .recipe-type { color: #5f4d24; }
-.newsletter p:not(.eyebrow) { color: #5f614b; }
-.consent { color: #525a43; }
 .coming-products { color: #705c2b; }
 .image-unavailable { color: #596451; }
 .back-link { color: #52623f; }
 .why-icon svg { width: 26px; height: 26px; }
-.newsletter-input { flex-wrap: wrap; align-items: center; }
-.newsletter-input input { flex-basis: 180px; }
-.newsletter-input button { min-height: 48px; font-size: var(--text-button); gap: 10px; white-space: normal; }
-.consent { min-height: 44px; line-height: 1.7; }
-.consent, .category-filter { font-size: var(--text-label); }
-.consent input { margin-top: 4px; }
+.category-filter { font-size: var(--text-label); }
 .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .product-copy { padding: clamp(16px, 1.5vw, 28px); }
 .product-copy h3 { font-size: var(--text-product); line-height: 1.4; font-weight: 600; }
@@ -364,8 +357,6 @@ html[lang='hi'] .customer-auth-field > label, html[lang='hi'] .customer-otp-fiel
   .delivery-fields { grid-template-columns: minmax(0, 1fr); }
   .review-line { flex-wrap: wrap; }
   .review-form button { width: 100%; }
-  .newsletter-input input { flex-basis: 100%; }
-  .newsletter-input button { min-height: 52px; }
   .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 18px; }
   .footer-grid > div:first-child, .footer-grid > div:last-child { grid-column: 1 / -1; }
   .customer-auth-card { padding: 28px 22px; }

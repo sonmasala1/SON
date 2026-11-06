@@ -27,7 +27,8 @@ export default function ProductCard({ product, detail = false }) {
   const variant = variants[variantIndex];
   const cartItem = cart.find(item => String(item.productId) === String(product._id) && String(item.variantId) === String(variant?._id));
   const cartQuantity = cartItem?.quantity || 0;
-  const quantityBusy = cartItem ? Boolean(busyItems[`cart:${cartItem._id}`]) : Boolean(busyItems[`product:${product._id}:${variant?._id}`]);
+  const maxQuantity = Math.min(99, Number(variant?.stock || 0), Number(cartItem?.stock ?? variant?.stock ?? 0));
+  const quantityBusy = cartItem ? Boolean(cartItem.optimistic || busyItems[`cart:${cartItem._id}`] || busyItems[`product:${product._id}:${variant?._id}`]) : Boolean(busyItems[`product:${product._id}:${variant?._id}`]);
   const selectedImage = selectedGallery || { url: variant?.image || product.image || allImages[0], crop: variant?.imageCrop || 'full' };
   const image = !imageFailed && safeImage(selectedImage.url);
   const gallery = productGallery(product);
@@ -85,7 +86,7 @@ export default function ProductCard({ product, detail = false }) {
   }
 
   async function increaseQuantity() {
-    if (!cartItem || quantityBusy || cartQuantity >= Math.min(99, Number(variant?.stock || 0))) return;
+    if (!cartItem || quantityBusy || cartQuantity >= maxQuantity) return;
     await updateQuantity(cartItem._id, cartQuantity + 1);
   }
 
@@ -95,7 +96,7 @@ export default function ProductCard({ product, detail = false }) {
       <div className="product-media">
       <div className="product-image">
         {image
-          ? <CatalogImage src={image} crop={selectedImage.crop} alt={`${name} ${variant?.label || ''}`} onError={() => setImageFailed(true)} />
+          ? <CatalogImage src={image} crop={selectedImage.crop} alt={`${name} ${variant?.label || ''}`} priority={detail} sizes={detail ? '(max-width: 760px) 100vw, 50vw' : '(max-width: 359px) 100vw, (max-width: 1199px) 50vw, 33vw'} onError={() => setImageFailed(true)} />
           : <div className="image-unavailable"><Icon name="leaf" size={45} /><span><Text>Product image coming soon</Text></span></div>
         }
         {user && (
@@ -205,7 +206,7 @@ export default function ProductCard({ product, detail = false }) {
             <div className="product-card-quantity" role="group" aria-label={`Quantity for ${name}`}>
               <button type="button" onClick={decreaseQuantity} disabled={quantityBusy} aria-label={`Decrease ${name} quantity`}>−</button>
               <span aria-live="polite">{cartQuantity}</span>
-              <button type="button" onClick={increaseQuantity} disabled={quantityBusy || cartQuantity >= Math.min(99, Number(variant?.stock || 0))} aria-label={`Increase ${name} quantity`}>+</button>
+              <button type="button" onClick={increaseQuantity} disabled={quantityBusy || cartQuantity >= maxQuantity} aria-label={`Increase ${name} quantity`}>+</button>
             </div>
           ) : (
             <button className="button" disabled={!available || adding || loading || quantityBusy} onClick={addSelectedToCart}>

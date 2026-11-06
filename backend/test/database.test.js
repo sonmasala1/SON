@@ -3,12 +3,11 @@ import assert from 'node:assert/strict';
 import mongoose from 'mongoose';
 import { createApp } from '../src/app.js';
 import Product from '../src/models/Product.js';
-import Subscriber from '../src/models/Subscriber.js';
 import { initializeModels } from '../src/config/models.js';
 
 const configured = process.env.MONGODB_TEST_URI;
 
-test('real MongoDB: published products, filters, drafts, and newsletter persistence', { skip: !configured }, async (t) => {
+test('real MongoDB: published products, filters and drafts', { skip: !configured }, async (t) => {
   const databaseName = `son_masala_test_${Date.now()}_${process.pid}`;
   await mongoose.connect(configured, { dbName: databaseName, serverSelectionTimeoutMS: 5000 });
   t.after(async () => {
@@ -38,9 +37,5 @@ test('real MongoDB: published products, filters, drafts, and newsletter persiste
   assert.equal((await (await fetch(`${base}/products?category=whole-spices`)).json()).products.length, 0);
   assert.equal((await fetch(`${base}/products?limit=1000`)).status, 400);
   assert.equal((await fetch(`${base}/ready`)).status, 200);
-  const post = data => fetch(`${base}/newsletter`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-  assert.equal((await post({ email: 'test@example.com', consent: false })).status, 400);
-  assert.equal((await post({ email: 'test@example.com', consent: true })).status, 200);
-  assert.equal((await post({ email: 'test@example.com', consent: true })).status, 200);
-  assert.equal(await Subscriber.countDocuments(), 1);
+  assert.equal((await fetch(`${base}/newsletter`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'test@example.com', consent: true }) })).status, 404);
 });

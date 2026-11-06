@@ -142,16 +142,6 @@ svg { flex-shrink: 0; }
 .recipe-copy h3, .recipe-copy h2 { font-size: 26px; margin-top: 12px; }
 .recipe-copy p { font-size: var(--text-support); color: var(--muted); line-height: 1.8; margin: 12px 0 20px; }
 .recipe-copy .text-link { font-size: var(--text-support-small); }
-.newsletter { background: #f0e5c9; border-block: 1px solid #e2d7b9; padding: 50px 0 45px; }
-.newsletter-inner { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 80px; }
-.newsletter h2 { font-size: 35px; margin-bottom: 12px; }
-.newsletter p:not(.eyebrow) { font-size: var(--text-support); color: #7c795f; }
-.newsletter .eyebrow { font-size: var(--text-support-small); margin-bottom: 10px; }
-.newsletter-input { display: flex; border-bottom: 1px solid #7d8166; padding-bottom: 9px; gap: 12px; }
-.newsletter-input input { background: transparent; border: none; outline-offset: 0; min-width: 0; flex: 1; font-size: var(--text-support); padding: 10px 0; }
-.newsletter-input button { display: flex; gap: 18px; align-items: center; font-size: var(--text-support); font-weight: 600; background: transparent; white-space: nowrap; }
-.consent { display: flex; align-items: flex-start; gap: 8px; font-size: var(--text-support-small); color: #6c715b; margin-top: 15px; }
-.consent input { accent-color: var(--green); margin-top: 1px; }
 .form-message { min-height: 20px; margin-top: 8px; }
 .site-footer { background: #1c372b; color: #e3e4d7; padding-top: 60px; }
 .footer-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1.2fr; gap: 45px; padding-bottom: 55px; }
@@ -280,7 +270,7 @@ select { background: #fdfaf0; padding: 9px 12px; border: 1px solid #d5d8c8; bord
   .why-section { gap: 35px; } .why-item { gap: 13px; } .why-icon { width: 40px; height: 40px; } .why-icon svg { width: 21px; }
   .story-copy { padding: 40px 30px; } .story-copy h2 { font-size: 33px; } .collection-card { padding: 28px; } .collection-card h3 { font-size: 27px; }
   .recipe-grid { gap: 15px; } .recipe-art { height: 170px; padding: 20px; } .recipe-art > svg { width: 40px; } .recipe-word { font-size: 44px; } .recipe-copy { padding: 20px; }
-  .newsletter-inner { gap: 35px; } .footer-grid { grid-template-columns: 1.2fr 1fr; gap: 35px; } .product-detail { grid-template-columns: 80px 1fr 1fr; } .product-detail .product-copy { padding: 25px; } .product-detail h1 { font-size: 35px; }
+  .footer-grid { grid-template-columns: 1.2fr 1fr; gap: 35px; } .product-detail { grid-template-columns: 80px 1fr 1fr; } .product-detail .product-copy { padding: 25px; } .product-detail h1 { font-size: 35px; }
 }
 @media (max-width: 760px) {
   .wrap { width: calc(100% - 40px); } .announcement { gap: 15px; font-size: var(--text-support-small); height: 31px; } .announcement span + span { padding-left: 15px; font-size: var(--text-support-small); }
@@ -295,7 +285,6 @@ select { background: #fdfaf0; padding: 9px 12px; border: 1px solid #d5d8c8; bord
   .story-section { grid-template-columns: 1fr; } .story-image { min-height: 320px; } .story-image > span { font-size: 32px; left: 25px; bottom: 25px; } .story-copy { padding: 40px 25px; } .story-copy h2 { font-size: 38px; }
   .collection-grid { grid-template-columns: 1fr; gap: 16px; } .collection-card { min-height: 285px; } .collection-card h3 { font-size: 30px; } .collection-decoration { right: 35px; }
   .recipe-grid { grid-template-columns: 1fr; gap: 24px; } .recipe-art { height: 215px; padding: 30px; } .recipe-art > svg { width: 80px; } .recipe-word { font-size: 70px; } .recipe-copy { padding: 25px; } .recipe-copy h3 { font-size: 27px; }
-  .newsletter-inner { grid-template-columns: 1fr; gap: 25px; } .newsletter { padding: 40px 0 25px; } .newsletter h2 { font-size: 33px; }
   .footer-grid { gap: 30px 20px; padding-bottom: 40px; } .footer-grid > div:first-child { grid-column: 1 / -1; } .footer-grid > div:last-child { grid-column: 1 / -1; } .site-footer { padding-top: 40px; }
   .footer-bottom { flex-wrap: wrap; gap: 10px 25px; } .footer-bottom > span:first-child { width: 100%; } .sample-label { font-size: var(--text-support-small); }
   .page-content { padding-block: 40px 60px; } .page-intro { font-size: var(--text-support); } .shop-toolbar { flex-direction: column; gap: 20px; } .category-filter { justify-content: space-between; } .category-filter select { flex: 1; max-width: 70%; }

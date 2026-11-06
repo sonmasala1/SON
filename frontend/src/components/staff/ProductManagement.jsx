@@ -201,7 +201,7 @@ export default function ProductManagement() {
     </div>
 
     <div className="staff-table-scroll"><table className="staff-table"><thead><tr><th><Text>{"Product"}</Text></th><th><Text>{"SKU / category"}</Text></th><th><Text>{"Status / packs"}</Text></th><th><Text>{"Actions"}</Text></th></tr></thead><tbody>
-      {products?.map(product => <tr key={product._id}><td><strong>{product.name}</strong><br /><span lang="hi">{product.hindiName}</span></td><td>{product.sku || '—'}<br />{product.category} / {product.subcategory || '—'}</td><td>{product.status}<br />{product.variants?.length || 0} pack(s)</td><td className="staff-actions">
+      {products?.map(product => <tr key={product._id}><td data-label="Product"><strong>{product.name}</strong><br /><span lang="hi">{product.hindiName}</span></td><td data-label="SKU / category">{product.sku || '—'}<br />{product.category} / {product.subcategory || '—'}</td><td data-label="Status / packs">{product.status}<br />{product.variants?.length || 0} pack(s)</td><td data-label="Actions" className="staff-actions">
         {mayUpdate && <button className="text-link" onClick={() => editProduct(product)}><Text>{"Edit"}</Text></button>}
         {mayUpdate && product.status !== 'archived' && <button className="text-link" onClick={() => changeProduct(product, 'archive')}><Text>{"Archive"}</Text></button>}
         {mayDelete && <button className="text-link danger-link" onClick={() => changeProduct(product, 'delete')}><Text>{"Delete"}</Text></button>}

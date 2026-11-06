@@ -12,7 +12,7 @@ export default function useProducts({ q = '', category = '', page = 1, limit = 1
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true); setError('');
-    getProducts({ q, category, page, limit, featured, offers, sort }, { signal: controller.signal }).then(setData).catch(error => { if (!controller.signal.aborted) setError(error.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    getProducts({ q, category, page, limit, featured, offers, sort }, { signal: controller.signal, refresh: attempt > 0 }).then(result => { if (!controller.signal.aborted) setData(result); }).catch(error => { if (!controller.signal.aborted) setError(error.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [q, category, page, limit, featured, offers, sort, attempt]);
   return { data, error, loading, retry };

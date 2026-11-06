@@ -1,6 +1,11 @@
 // English source phrases are stable message keys. Keep translations here rather than in page components.
 // Names, addresses, contact details, SKUs and user-written reviews remain as authored.
 const entries = `
+Write a Review	समीक्षा लिखें
+Customer Reviews	ग्राहक समीक्षाएँ
+Updating your bag…	आपका बैग अपडेट हो रहा है…
+Verify your email or mobile number before submitting a review.	समीक्षा भेजने से पहले अपना ईमेल या मोबाइल नंबर सत्यापित करें।
+Too many review attempts. Please try again later.	समीक्षा भेजने के बहुत अधिक प्रयास हुए। कृपया बाद में फिर कोशिश करें।
 Place Order — Pay Later	ऑर्डर करें — भुगतान बाद में
 Your order has been placed successfully!	आपका ऑर्डर सफलतापूर्वक दर्ज हो गया है!
 Thank you for shopping with SON MASALA. Our team will contact you shortly to arrange payment and shipment.	SON MASALA से खरीदारी के लिए धन्यवाद। भुगतान और डिलीवरी की व्यवस्था के लिए हमारी टीम जल्द आपसे संपर्क करेगी।
@@ -142,7 +147,7 @@ GOOD THINGS TAKE A LITTLE CARE	अच्छी चीज़ों में थ�
 No spices on this shelf just yet.	यहाँ अभी कोई मसाला उपलब्ध नहीं है।
 A fresh chapter of flavour is on its way.	स्वाद का एक नया अध्याय जल्द आ रहा है।
 Try another search or explore our other categories.	दूसरा शब्द खोजें या दूसरी श्रेणियाँ देखें।
-Our first collection is being prepared. Explore the kitchen, find a new recipe, and join our newsletter for updates.	हमारा पहला संग्रह तैयार हो रहा है। रसोई देखें, नई रेसिपी खोजें और जानकारी के लिए हमारी पत्रिका से जुड़ें।
+Our first collection is being prepared. Explore the kitchen and discover recipes for your next meal.	हमारा पहला संग्रह तैयार हो रहा है। रसोई देखें और अपने अगले भोजन के लिए नई रेसिपी खोजें।
 Explore all products	सभी उत्पाद देखें
 Previous	पिछला
 Page	पृष्ठ
@@ -314,18 +319,9 @@ Your shopping bag and account	आपका शॉपिंग बैग और �
 Guest shopping bags are stored on the server and identified by a persistent browser cookie. Customer bags are saved to your account. Your guest bag is merged when you sign in. Secure session cookies cannot be read by page scripts.	अतिथि का बैग सर्वर पर सहेजा जाता है और सुरक्षित ब्राउज़र कुकी से पहचाना जाता है। ग्राहक का बैग उसके खाते में सहेजा जाता है। लॉग इन करने पर अतिथि बैग खाते के बैग से जुड़ जाता है। सुरक्षित सत्र कुकी पृष्ठ की स्क्रिप्ट नहीं पढ़ सकती।
 Your wishlist and delivery details	पसंदीदा उत्पाद और डिलीवरी विवरण
 Customer reviews	ग्राहकों की समीक्षाएँ
-Newsletter	समाचार पत्रिका
-Subscriptions store your email and consent in MongoDB. Campaign delivery is not active. Contact and unsubscribe channels must be configured before email campaigns begin.	सदस्यता में आपका ईमेल और सहमति मोंगोडीबी में सहेजी जाती है। प्रचार ईमेल भेजना अभी सक्रिय नहीं है। अभियान से पहले संपर्क और सदस्यता छोड़ने की व्यवस्था करनी होगी।
 Contact information	संपर्क जानकारी
 The displayed email, phone, and address are sample details pending confirmation.	दिखाए गए ईमेल, फोन और पते नमूना विवरण हैं और पुष्टि होना बाकी है।
 ← Back to the spice shelf	← मसालों पर वापस जाएँ
-A LETTER FROM OUR KITCHEN	हमारी रसोई से एक पत्र
-A pinch of inspiration,	थोड़ी सी प्रेरणा,
-in your inbox.	आपके इनबॉक्स में।
-Recipes, kitchen stories, and news from SON MASALA.	सोन मसाला की रेसिपी, रसोई की कहानियाँ और नई जानकारी।
-Your email address	आपका ईमेल पता
-Count me in	मुझे जोड़ें
-I agree to receive recipes and brand updates by email.	मैं ईमेल से रेसिपी और ब्रांड की जानकारी प्राप्त करने के लिए सहमत हूँ।
 FROM YOUR KITCHEN	आपकी रसोई से
 Share your experience.	अपना अनुभव साझा करें।
 Checking your account…	आपका खाता जाँचा जा रहा है…
@@ -445,9 +441,6 @@ Too many sign-in attempts. Please try again later.	लॉग इन के ब�
 Something went wrong. Please try again.	कुछ समस्या हुई। फिर से प्रयास करें।
 Message delivery is unavailable. Please try again later.	संदेश भेजना अभी उपलब्ध नहीं है। कुछ समय बाद प्रयास करें।
 Product not found.	उत्पाद नहीं मिला।
-Joining…	जोड़ा जा रहा है…
-You’re on the list. Thank you for joining our kitchen.	आप जुड़ गए हैं। हमारी रसोई से जुड़ने के लिए धन्यवाद।
-Enter a valid email and agree to receive our newsletter.	सही ईमेल भरें और समाचार पत्रिका प्राप्त करने के लिए सहमति दें।
 That verification code is incorrect. Please try again.	सत्यापन कोड गलत है। कृपया फिर से प्रयास करें।
 This code is no longer valid. Please request a new code.	यह कोड अब मान्य नहीं है। नया कोड मँगाएँ।
 This code was already used or expired. Please request a new code.	यह कोड उपयोग हो चुका है या समाप्त है। नया कोड मँगाएँ।

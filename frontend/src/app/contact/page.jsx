@@ -1,5 +1,4 @@
 import { Text, LocalizedAttrs } from "@/components/LocalizedText";
-import Newsletter from "@/components/Newsletter";
 import Icon from "@/components/Icon";
 export const metadata = { title: "Contact | SON MASALA" };
 export default function ContactPage() {
@@ -58,7 +57,6 @@ export default function ContactPage() {
           </Text>
         </p>
       </section>
-      <Newsletter />
     </main>
   );
 }

@@ -1,10 +1,13 @@
 import apiConfiguration from '../../config/api-base';
+import { publicRequest } from './public-cache';
 export const API_BASE_URL = apiConfiguration.resolveApiBaseUrl({ nodeEnv: process.env.NODE_ENV, configuredUrl: process.env.NEXT_PUBLIC_API_BASE_URL });
 const validRequestId = value => typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value);
 
 export function apiUrl(endpoint) {
   const path = endpoint.replace(/^\/+/, '').replace(/^api\/v1\/?/, '');
-  const base = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_PROXY === 'true' ? '/api/v1' : API_BASE_URL;
+  // A single local origin also works in WebKit and on phones opening the dev server.
+  const proxy = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_API_PROXY === 'true';
+  const base = typeof window !== 'undefined' && proxy ? '/api/v1' : API_BASE_URL;
   return `${base}/${path}`;
 }
 
@@ -29,7 +32,10 @@ export function apiRequest(endpoint, requestOptions = {}) {
   }
   // A component owns its AbortSignal. Sharing that promise would let one unmount
   // cancel another caller (including React Strict Mode's replacement effect).
-  if (method !== 'GET' || requestOptions.signal) return apiRequestNow(endpoint, requestOptions);
+  if (method !== 'GET' || requestOptions.signal || requestOptions.dedupe === false) {
+    const { dedupe: _dedupe, ...options } = requestOptions;
+    return apiRequestNow(endpoint, options);
+  }
   const key = `${apiUrl(endpoint)}|${requestOptions.headers?.['X-CSRF-Token'] || ''}`;
   if (inFlightGets.has(key)) return inFlightGets.get(key);
   const request = apiRequestNow(endpoint, requestOptions).finally(() => inFlightGets.delete(key));
@@ -71,12 +77,15 @@ export const getHealth = (options) => apiRequest('health', options);
 export const getReadiness = (options) => apiRequest('ready', options);
 export function getProducts(query = {}, options) {
   const search = new URLSearchParams(Object.entries(query).filter(([, value]) => value !== '' && value != null));
-  return apiRequest(`products?${search}`, options);
+  const endpoint = `products?${search}`;
+  return publicRequest(apiUrl(endpoint), () => apiRequest(endpoint), options);
 }
-export const getCategories = options => apiRequest('categories', options);
-export const getProduct = (slug, options) => apiRequest(`products/${encodeURIComponent(slug)}`, options);
-export const subscribe = (email, consent) => apiRequest('newsletter', { method: 'POST', body: JSON.stringify({ email, consent }) });
-export const getCart = () => apiRequest('cart');
+export const getCategories = options => publicRequest(apiUrl('categories'), () => apiRequest('categories'), { ...options, ttl: 60000 });
+export const getProduct = (slug, options) => {
+  const endpoint = `products/${encodeURIComponent(slug)}`;
+  return publicRequest(apiUrl(endpoint), () => apiRequest(endpoint), options);
+};
+export const getCart = options => apiRequest('cart', options);
 export const addCartItem = (productId, variantId, quantity = 1) => apiRequest('cart/items', { method: 'POST', body: JSON.stringify({ productId, variantId, quantity }) });
 export const updateCartItem = (id, quantity) => apiRequest(`cart/items/${id}`, { method: 'PATCH', body: JSON.stringify({ quantity }) });
 export const removeCartItem = id => apiRequest(`cart/items/${id}`, { method: 'DELETE' });

@@ -3,7 +3,7 @@ import { Text, LocalizedAttrs } from "@/components/LocalizedText";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Icon from "./Icon";
 import { useStore } from "./StoreProvider";
 import LanguageToggle from "./LanguageToggle";
@@ -42,12 +42,29 @@ export default function Header() {
   const [search, setSearch] = useState(false);
   const { cartCount, wishlist, setDrawerOpen, user } = useStore();
   const pathname = usePathname();
+  const header = useRef(null);
+  const searchInput = useRef(null);
+  const searchTrigger = useRef(null);
+  useEffect(() => { if (search) searchInput.current?.focus({ preventScroll: true }); }, [search]);
+  useEffect(() => { setMenu(false); setSearch(false); }, [pathname]);
+  useEffect(() => {
+    const element = header.current;
+    if (!element) return;
+    const measure = () => document.documentElement.style.setProperty('--header-height', `${element.getBoundingClientRect().height}px`);
+    const observer = new ResizeObserver(measure);
+    observer.observe(element); measure();
+    const dismiss = event => { if (event.key === 'Escape') { if (document.activeElement === searchInput.current) searchTrigger.current?.focus(); setMenu(false); setSearch(false); } };
+    const outside = event => { if (!element.contains(event.target)) setSearch(false); };
+    document.addEventListener('keydown', dismiss);
+    document.addEventListener('pointerdown', outside);
+    return () => { observer.disconnect(); document.removeEventListener('keydown', dismiss); document.removeEventListener('pointerdown', outside); document.documentElement.style.removeProperty('--header-height'); };
+  }, [pathname]);
   if (/^\/(admin|owner)(\/|$)/.test(pathname)) {
     return /\/(login|accept-invitation)$/.test(pathname) ? <header className="staff-header"><div className="wrap staff-header-inner"><Brand /><span className="staff-header-label">Secure administration</span></div></header> : null;
   }
   if (pathname === "/login")
     return (
-      <header className="customer-auth-header">
+      <header className="customer-auth-header" ref={header}>
         <div className="customer-auth-header-inner">
           <Brand />
           <LocalizedAttrs>
@@ -122,7 +139,7 @@ export default function Header() {
   ];
   return (
     <>
-      <header className="site-header">
+      <header className="site-header" ref={header}>
         <div className="header-inner wrap">
           <Brand />
           <LocalizedAttrs>
@@ -157,9 +174,11 @@ export default function Header() {
             <LocalizedAttrs>
               <button
                 className="icon-button header-search-toggle"
-                onClick={() => setSearch(!search)}
+                ref={searchTrigger}
+                onClick={() => { setSearch(!search); setMenu(false); }}
                 aria-label="Search products"
                 aria-expanded={search}
+                aria-controls="header-search-panel"
               >
                 <Icon name="search" />
               </button>
@@ -212,7 +231,7 @@ export default function Header() {
             <LocalizedAttrs>
               <button
                 className="icon-button menu-toggle"
-                onClick={() => setMenu(!menu)}
+                onClick={() => { setMenu(!menu); setSearch(false); }}
                 aria-label={menu ? "Close menu" : "Open menu"}
                 aria-expanded={menu}
               >
@@ -221,8 +240,7 @@ export default function Header() {
             </LocalizedAttrs>
           </div>
         </div>
-        <Text>
-          {search && (
+        <div id="header-search-panel" className={`header-search-panel${search ? ' is-open' : ''}`} aria-hidden={!search} inert={search ? undefined : ''}>
             <form className="header-search wrap" action="/shop">
               <label className="sr-only" htmlFor="header-search">
                 <Text>{"Search spices"}</Text>
@@ -230,7 +248,7 @@ export default function Header() {
               <Icon name="search" />
               <LocalizedAttrs>
                 <input
-                  autoFocus
+                  ref={searchInput}
                   id="header-search"
                   name="q"
                   type="search"
@@ -242,8 +260,7 @@ export default function Header() {
                 <Text>{"Search"}</Text>
               </button>
             </form>
-          )}
-        </Text>
+        </div>
       </header>
     </>
   );

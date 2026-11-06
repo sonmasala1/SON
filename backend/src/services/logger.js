@@ -19,7 +19,7 @@ export function safeRoute(req) {
   const template = req.route?.path;
   if (typeof template === 'string' && template.startsWith('/')) return `/api/v1${realm ? `/${realm}` : ''}${template}`;
   const relative = path.replace(/^\/api\/v1/, '');
-  if (operations.has(relative) || ['/health', '/ready', '/products', '/cart', '/cart/items', '/checkout/preview', '/checkout/place', '/categories', '/reviews', '/newsletter', '/wishlist'].includes(relative)) return `/api/v1${relative}`;
+  if (operations.has(relative) || ['/health', '/ready', '/products', '/cart', '/cart/items', '/checkout/preview', '/checkout/place', '/categories', '/reviews', '/wishlist'].includes(relative)) return `/api/v1${relative}`;
   if (/^\/checkout\/attempts\/[^/]+$/.test(relative)) return '/api/v1/checkout/attempts/:attemptId';
   if (realm && /^\/(owner|admin)\/auth\/(?:login|logout|me|mfa\/verify|passkeys\/(?:options|verify))$/.test(relative)) return `/api/v1${relative}`;
   if (realm && /^\/(owner|admin)\/(?:dashboard|orders|products|customers|inventory|payments|shipping|analytics|reviews)$/.test(relative)) return `/api/v1${relative}`;

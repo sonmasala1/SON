@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import { getEnv } from '../src/config/env.js';
 import { connectDatabase, disconnectDatabase } from '../src/config/db.js';
 import { AdminAccount } from '../src/models/administration.js';

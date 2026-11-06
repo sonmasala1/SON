@@ -1,0 +1,87 @@
+/* Contain content by shrinking/reflowing it, without hiding horizontal overflow. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+body { padding-left: var(--safe-left); padding-right: var(--safe-right); }
+html { scroll-padding-top: calc(var(--header-height, 144px) + 16px); }
+img, video { max-width: 100%; }
+main, section, article, form, fieldset, label { min-width: 0; }
+input, select, textarea { max-width: 100%; min-width: 0; }
+textarea { resize: vertical; }
+button, summary { min-height: 44px; min-width: 44px; }
+.staff-copy-button { min-height: 44px; min-width: 44px; }
+.variant-pill { min-height: 44px; min-width: 44px; }
+.copy-order-button { min-width: 44px; min-height: 44px; }
+.confirmation-status-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+.confirmation-product-copy { min-width: 0; overflow-wrap: anywhere; }
+.confirmation-delivery address, .confirmation-delivery a { overflow-wrap: anywhere; }
+.customer-auth-page .customer-auth-tabs button { min-height: 44px; }
+.brand { min-width: 0; max-width: 100%; }
+.brand > span:last-child { min-width: 0; }
+.brand strong, .brand small { overflow-wrap: anywhere; }
+.header-actions, .customer-auth-header-actions { min-width: 0; max-width: 100%; }
+.hero-stamp { height: auto; min-height: 164px; aspect-ratio: 1; }
+.site-header, .customer-auth-header { padding-top: var(--safe-top); }
+@media (max-width: 1240px) {
+  .main-nav, .customer-auth-nav { max-height: calc(100vh - var(--header-height, 160px) - var(--safe-bottom)); max-height: calc(100dvh - var(--header-height, 160px) - var(--safe-bottom)); overflow-y: auto; overscroll-behavior: contain; }
+}
+.cart-drawer { min-height: 0; height: 100%; max-height: 100vh; max-height: 100dvh; overscroll-behavior: contain; padding-bottom: max(28px, var(--safe-bottom)); }
+.drawer-overlay { padding-inline: var(--safe-left) var(--safe-right); }
+.drawer-heading { align-items: flex-start; }
+.drawer-heading > div, .cart-item-copy { min-width: 0; }
+.drawer-heading > button { flex-shrink: 0; }
+.toast { bottom: calc(25px + var(--safe-bottom)); overflow-wrap: anywhere; }
+.footer-bottom { padding-bottom: max(20px, var(--safe-bottom)); }
+.review-entry-link { margin-top: 24px; }
+.review-form { display: block; }
+.review-form fieldset { margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.review-form label { display: flex; flex-direction: column; gap: 8px; }
+.review-form input, .review-form textarea, .review-form select { width: 100%; }
+.review-form [role='status'], .review-form [role='alert'] { margin-top: 16px; }
+.review-form-section > p { max-width: 850px; margin-top: 16px; }
+.moderation-list article { flex-wrap: wrap; }
+.moderation-list article > div { flex: 1 1 260px; overflow-wrap: anywhere; }
+@media (max-width: 1100px) {
+  .shop-toolbar { flex-wrap: wrap; gap: 20px; }
+  .shop-toolbar form { min-width: 0; flex: 1 1 100%; }
+  .category-filter { min-width: 0; flex-wrap: wrap; }
+  .category-filter select { min-width: 0; }
+}
+@media (max-width: 1240px) {
+  .catalog-variant-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .catalog-variant-row > .text-link { max-width: 100%; overflow-wrap: anywhere; }
+}
+@media (max-width: 760px) {
+  .catalog-variant-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 639px) {
+  .hero-stamp { min-height: 150px; }
+  .review-form fieldset { grid-template-columns: minmax(0, 1fr); }
+  .review-form button { width: 100%; }
+  .category-filter { align-items: flex-start; }
+  .shop-toolbar form { flex-wrap: wrap; }
+  .shop-toolbar form input { flex: 1 1 120px; width: auto; }
+  .staff-identity { max-width: 100%; }
+  .staff-profile-menu { width: min(290px, calc(100vw - 36px)); overflow-wrap: anywhere; }
+  /* Give the stamp and caption separate rows as fonts/translations grow. */
+  .shopping-hero .hero-visual { height: auto; min-height: 340px; display: flex; flex-direction: column; align-items: flex-end; gap: 24px; padding: 22px 25px; }
+  .shopping-hero .hero-stamp { position: relative; inset: auto; flex-shrink: 0; margin-bottom: 12px; }
+  .shopping-hero .hero-caption { position: relative; inset: auto; width: 100%; margin-top: auto; }
+  .shopping-hero .image-index { position: relative; inset: auto; align-self: stretch; }
+}
+@media (max-width: 800px) {
+  .confirmation-grid { grid-template-columns: minmax(0, 1fr); }
+  .confirmation-products { grid-row: auto; }
+}
+@media (max-width: 480px) {
+  .confirmation-product { grid-template-columns: 64px minmax(0, 1fr); gap: 12px; }
+  .confirmation-product-image, .confirmation-product-image .catalog-image-frame { width: 64px; height: 64px; }
+  .confirmation-product-total { grid-column: 2; white-space: normal; overflow-wrap: anywhere; }
+  .confirmation-total-card, .confirmation-delivery { padding: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}

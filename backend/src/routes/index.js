@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { getHealth, getReadiness } from '../controllers/healthController.js';
 import { getProducts, getProduct } from '../controllers/productController.js';
-import { subscribe } from '../controllers/newsletterController.js';
 import { requireDatabase } from '../middleware/requireDatabase.js';
 import rateLimit from 'express-rate-limit';
 import Category from '../models/Category.js';
@@ -18,6 +17,7 @@ import { requestEmailOtp, verifyEmailOtp, resendEmailOtp } from '../controllers/
 import { customerOrigin } from '../services/customerSessionService.js';
 import { startGoogleLogin, googleLoginCallback } from '../controllers/googleAuthController.js';
 import { showWishlist, changeWishlist } from '../controllers/wishlistController.js';
+import { reviewLimiters } from '../middleware/reviewSubmission.js';
 
 export default function createRoutes() {
 const router = Router();
@@ -27,7 +27,6 @@ router.get('/health', getHealth);
 router.get('/ready', getReadiness);
 router.get('/products', requireDatabase, getProducts);
 router.get('/products/:slug', requireDatabase, getProduct);
-router.post('/newsletter', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { success: false, message: 'Please try again later.' } }), requireDatabase, subscribe);
 router.get('/categories', requireDatabase, async (req, res, next) => {
   try {
     const slugs = await Product.distinct('category', storefrontFilter(false, false));
@@ -64,7 +63,7 @@ router.post('/checkout/place', requireCustomer, customerOrigin, placePayLaterOrd
 router.get('/checkout/attempts/:requestKey', requireCustomer, showCheckoutAttempt);
 router.patch('/orders/:id/cancel', requireCustomer, customerOrigin, cancelCustomerOrder);
 router.get('/orders/:id', requireCustomer, showOrder);
-router.post('/reviews', requireCustomer, customerOrigin, createReview);
+router.post('/reviews', requireCustomer, customerOrigin, ...reviewLimiters(), (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); }, createReview);
 
 return router;
 }

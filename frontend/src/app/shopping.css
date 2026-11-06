@@ -1,0 +1,41 @@
+/* Compact shopping controls retain 44px hit areas. */
+.header-search-panel { position: absolute; inset-inline: 0; top: 100%; z-index: 45; padding: 10px 0 14px; background: #faf7eff5; border-bottom: 1px solid var(--line); box-shadow: 0 8px 18px #17332814; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-6px); transition: opacity .18s ease, transform .18s ease, visibility 0s .18s; }
+.header-search-panel.is-open { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); transition-delay: 0s; }
+.site-header .header-search { max-width: 640px; display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; margin: 0 auto; padding: 4px 6px 4px 14px; border: 1px solid #b6bca5; border-radius: 999px; background: #fffdf7; }
+.site-header .header-search input { flex: 1 1 0; width: 0; min-width: 0; min-height: 44px; padding: 8px 0; border: 0; border-radius: 0; background: transparent; font-size: 16px; }
+.site-header .header-search .button { flex: 0 0 auto; min-height: 44px; padding: 8px 14px; border-radius: 999px; font-size: 16px; line-height: 1.4; }
+.header-search > .app-icon { width: 24px; height: 24px; }
+.product-grid { align-items: stretch; }
+.product-card:not(.product-detail) { display: flex; flex-direction: column; }
+.product-card:not(.product-detail) .product-copy { display: flex; flex: 1; flex-direction: column; padding: clamp(12px, 1.25vw, 20px); }
+.product-card:not(.product-detail) .product-copy > .eyebrow { margin-bottom: 6px; }
+.product-card:not(.product-detail) .product-image { height: auto; aspect-ratio: 1.12; }
+.product-card:not(.product-detail) .variant-picker { margin-block: 12px; }
+.product-card:not(.product-detail) .variant-picker-label { margin-bottom: 4px; }
+.product-card:not(.product-detail) .variant-pills { gap: 5px; }
+.product-card:not(.product-detail) .variant-pill { padding: 6px 10px; }
+.product-card:not(.product-detail) .price-row { margin-top: auto; padding-top: 10px; margin-bottom: 12px; }
+.product-card:not(.product-detail) .product-actions { gap: 8px; align-items: center; }
+.product-card:not(.product-detail) .product-actions .button { min-height: 44px; padding: 9px 10px; font-size: 16px; gap: 7px; }
+.product-card:not(.product-detail) .details-link { margin-top: 10px; }
+.product-card .product-card-quantity { display: inline-grid; grid-template-columns: 44px minmax(28px, auto) 44px; justify-self: start; width: auto; max-width: 100%; min-height: 44px; gap: 0; border: 1px solid #9aa98c; border-radius: 6px; background: #f4f5e9; }
+.product-card-quantity button { min-width: 44px; min-height: 44px; padding: 0; font-size: 22px; }
+.product-card-quantity > span { min-width: 28px; align-self: center; text-align: center; font-size: 16px; }
+.product-reviews.section { padding-block: 32px; margin-top: 32px; border-top: 1px solid var(--line); }
+.product-reviews > .wrap { width: 100%; }
+.product-reviews .review-heading { margin-bottom: 20px; }
+.review-entry-link { margin-block: 12px; }
+.review-form-section { margin-top: 24px; padding-top: 24px; }
+.review-form { margin-top: 18px; }
+.review-form textarea { min-height: 110px; }
+.review-rating-stars { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 8px; }
+.review-form .review-rating-stars label { position: relative; display: grid; place-items: center; width: 44px; min-height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 5px; color: #78652f; font-size: 26px; cursor: pointer; }
+.review-form .review-rating-stars input { position: absolute; top: 0; left: 0; width: 1px; min-width: 0; max-width: 1px; height: 1px; min-height: 0; margin: 0; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.review-rating-stars label.is-selected { color: #946b14; background: #f5edcf; border-color: #c6b376; }
+.review-rating-stars label:focus-within { outline: 3px solid #b77527; outline-offset: 2px; }
+.cart-updating { margin-block: 8px; font-size: 14px; color: var(--muted); }
+@media (max-width: 639px) {
+  .site-header .header-search { width: calc(100% - 28px); }
+  .site-header .header-search .button { padding-inline: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .header-search-panel { transition: none; } }

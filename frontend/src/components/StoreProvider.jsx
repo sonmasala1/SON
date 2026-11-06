@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useRef,
+  useMemo,
   useState,
 } from "react";
 import { usePathname } from "next/navigation";
@@ -17,11 +18,13 @@ import {
   apiRequest,
 } from "@/lib/api";
 import CartDrawer from "./CartDrawer";
+import { previewCart } from '@/lib/cart-preview';
 
 const Context = createContext(null);
 
 export function StoreProvider({ children }) {
   const [cartData, setCartData] = useState(null);
+  const [optimisticChanges, setOptimisticChanges] = useState([]);
   const [user, setUser] = useState(null);
   const [wishlist, setWishlist] = useState([]);
   const [wishlistProducts, setWishlistProducts] = useState([]);
@@ -50,6 +53,7 @@ export function StoreProvider({ children }) {
   const customerIdentity = useRef(null);
   const previousPathname = useRef(pathname);
   const initialized = useRef(false);
+  const lastRefresh = useRef(0);
 
   const noticeMessage =
     notice?.kind === "cart-added" ? "Added to Cart" : notice;
@@ -62,6 +66,7 @@ export function StoreProvider({ children }) {
 
       setUser(null);
       setCartData(null);
+      setOptimisticChanges([]);
       setWishlist([]);
       setWishlistProducts([]);
       setWishlistError("");
@@ -81,7 +86,7 @@ export function StoreProvider({ children }) {
         let cartError = null;
 
         try {
-          cartResult = await getCart();
+          cartResult = await getCart(options.force || options.clearCustomer ? { dedupe: false } : undefined);
         } catch (err) {
           cartError = err;
         }
@@ -90,7 +95,7 @@ export function StoreProvider({ children }) {
 
         if (cartError) {
           try {
-            const session = await apiRequest("auth/me");
+            const session = await apiRequest("auth/me", options.clearCustomer ? { dedupe: false } : undefined);
             customer = session?.user ?? null;
           } catch {
             // Keep existing session state when both APIs fail.
@@ -120,6 +125,7 @@ export function StoreProvider({ children }) {
           }
 
           setError("");
+          lastRefresh.current = Date.now();
 
           if (customerId) {
             const wishlistVersion = wishlistEpoch.current;
@@ -210,14 +216,14 @@ export function StoreProvider({ children }) {
 
     previousPathname.current = pathname;
 
-    if (!staffSection && initialized.current && cartMutationCount.current === 0) {
+    if (!staffSection && initialized.current && cartMutationCount.current === 0 && Date.now() - lastRefresh.current > 10000) {
       void refreshCart();
     }
   }, [pathname, refreshCart, staffSection]);
 
   // Serialise cart writes so older responses cannot replace newer writes.
   const mutate = useCallback(
-    (action, itemKey = null) => {
+    (action, itemKey = null, preview = null) => {
       if (itemKey && itemLocks.current.has(itemKey)) {
         return Promise.resolve(false);
       }
@@ -236,9 +242,12 @@ export function StoreProvider({ children }) {
       setError("");
 
       const epoch = authEpoch.current;
+      const previewId = crypto.randomUUID();
+      if (preview) setOptimisticChanges(previous => [...previous, { ...preview, id: previewId }]);
 
       const operation = async () => {
         try {
+          if (epoch !== authEpoch.current) return false;
           const result = await action();
 
           if (epoch !== authEpoch.current) return false;
@@ -248,13 +257,15 @@ export function StoreProvider({ children }) {
           return true;
         } catch (err) {
           if (epoch === authEpoch.current) {
+            setOptimisticChanges(previous => previous.filter(change => change.id !== previewId));
             setError(err.message || "Cart update failed");
             setNotice(err.message || "Cart update failed");
-            await refreshCart();
+            await refreshCart({ force: true });
           }
 
           return false;
         } finally {
+          if (preview) setOptimisticChanges(previous => previous.filter(change => change.id !== previewId));
           cartMutationCount.current -= 1;
 
           if (cartMutationCount.current === 0) {
@@ -296,6 +307,7 @@ export function StoreProvider({ children }) {
       const success = await mutate(
         () => addCartItem(product._id, variant._id, 1),
         itemKey,
+        { type: 'add', product, variant },
       );
 
       if (success) {
@@ -316,7 +328,7 @@ export function StoreProvider({ children }) {
         return Promise.resolve(false);
       }
 
-      return mutate(() => updateCartItem(id, quantity), `cart:${id}`);
+      return mutate(() => updateCartItem(id, quantity), `cart:${id}`, { type: 'quantity', itemId: id, quantity });
     },
     [mutate],
   );
@@ -325,7 +337,7 @@ export function StoreProvider({ children }) {
     (id) => {
       if (!id) return Promise.resolve(false);
 
-      return mutate(() => removeCartItem(id), `cart:${id}`);
+      return mutate(() => removeCartItem(id), `cart:${id}`, { type: 'remove', itemId: id });
     },
     [mutate],
   );
@@ -383,12 +395,13 @@ export function StoreProvider({ children }) {
     [user, wishlist, refreshCart],
   );
 
+  const visibleCart = useMemo(() => optimisticChanges.reduce(previewCart, cartData), [cartData, optimisticChanges]);
   return (
     <Context.Provider
       value={{
-        cartData,
-        cart: cartData?.items ?? [],
-        cartCount: cartData?.count ?? 0,
+        cartData: visibleCart,
+        cart: visibleCart?.items ?? [],
+        cartCount: visibleCart?.count ?? 0,
         user,
         wishlist,
         wishlistProducts,
