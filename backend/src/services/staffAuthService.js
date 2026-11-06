@@ -5,6 +5,7 @@ import { audit, metadata, securityNow } from './staffAudit.js';
 import { staffCookie } from '../middleware/staffAccess.js';
 import { allPermissions, ownerOnlyPermission } from '../config/permissions.js';
 import { httpError } from '../utils/httpError.js';
+import { logEvent } from './logger.js';
 
 export function staffView(account) { return { id: account.id || String(account._id), adminId: (account.verificationSource === 'ENVIRONMENT_CONFIG' && account.loginId) || account.adminId, fullName: account.fullName, email: account.email, phone: account.phone, role: account.role, permissions: account.role === 'OWNER' ? allPermissions : account.permissions.filter(value => !ownerOnlyPermission(value)), status: account.status, mfaEnabled: account.mfaEnabled, lastLoginAt: account.lastLoginAt, emailVerifiedAt: account.emailVerifiedAt, verificationSource: account.verificationSource }; }
 export async function createChallenge(req, fields, minutes = 5) {
@@ -76,6 +77,8 @@ export async function makeSession(req, account, realm, method, session) {
 }
 export function sendStaffSession(req, res, result, realm, extras = {}) {
   res.cookie(`son_${realm}_session`, result.token, staffCookie(req, realm));
+  logEvent('INFO', 'staff.auth.diagnostic', { stage: 'session_persisted', realm }, req);
+  logEvent('INFO', 'staff.auth.diagnostic', { stage: 'cookie_issued', realm }, req);
   res.set('Cache-Control', 'no-store').json({ success: true, account: staffView(result.account), csrfToken: keyedDigest(`csrf:${result.token}`, req.app.locals.config), ...extras });
 }
 export async function verifyStaffMfa(req, realm, token, code) {

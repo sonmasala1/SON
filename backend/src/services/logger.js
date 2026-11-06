@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 const context = new AsyncLocalStorage();
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const methods = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
-const events = new Set(['order.stock.conflict', 'email.api.request', 'email.api.accepted', 'email.api.failed', 'order.created', 'order.stock.reserved', 'order.cancelled', 'cart.calculated', 'api.request', 'api.aborted', 'server.started', 'server.stopping', 'server.start_blocked', 'server.start_failed', 'server.bind_failed', 'server.cleanup_failed', 'server.exception', 'database.connected', 'database.reconnected', 'database.disconnected', 'database.error', 'database.configuration_error', 'otp.dispatch.succeeded', 'otp.dispatch.failed', 'otp.idempotency.replayed', 'otp.idempotency.pending', 'customer.authentication.succeeded', 'customer.session.rejected', 'google.callback.failed']);
+const events = new Set(['order.stock.conflict', 'email.api.request', 'email.api.accepted', 'email.api.failed', 'order.created', 'order.stock.reserved', 'order.cancelled', 'cart.calculated', 'api.request', 'api.aborted', 'server.started', 'server.stopping', 'server.start_blocked', 'server.start_failed', 'server.bind_failed', 'server.cleanup_failed', 'server.exception', 'database.connected', 'database.reconnected', 'database.disconnected', 'database.error', 'database.configuration_error', 'otp.dispatch.succeeded', 'otp.dispatch.failed', 'otp.idempotency.replayed', 'otp.idempotency.pending', 'customer.authentication.succeeded', 'customer.session.rejected', 'google.callback.failed', 'staff.auth.diagnostic']);
 const reasons = new Set(['stock_conflict', 'cart_empty', 'cart_changed', 'restock_target_missing', 'cors_origin_rejected', 'csrf_origin_rejected', 'csrf_token_rejected', 'session_invalid', 'session_expired_or_revoked', 'account_unavailable', 'session_renewal_failed', 'credentials_or_account_unavailable', 'mfa_invalid_or_replayed', 'database_unavailable', 'configuration_missing', 'MISSING_ENV_VARIABLE', 'INVALID_SECURITY_CONFIGURATION', 'DATABASE_CONNECTION_FAILED', 'delivery_failed', 'state', 'cancelled', 'account_link_required', 'failed', 'rate_limited', 'validation_failed', 'unauthorized', 'forbidden', 'not_found', 'conflict', 'server_error', 'request_failed', 'aborted', 'backend_already_starting', 'port_already_in_use', 'port_access_denied', 'host_not_found', 'bind_error', 'startup_error', 'brevo_rate_limited', 'brevo_authentication', 'brevo_permission', 'brevo_ip_restricted', 'brevo_sender_invalid', 'brevo_unavailable', 'brevo_rejected', 'brevo_response_invalid', 'brevo_timeout']);
 const operations = new Map([
   ['/auth/email/send-otp', 'email_otp.request'], ['/auth/email/resend-otp', 'email_otp.resend'], ['/auth/email/verify-otp', 'email_otp.verify'],
@@ -57,6 +57,8 @@ export function logEvent(level, event, fields = {}, explicitReq) {
   if (['development', 'test', 'production'].includes(fields.environment)) record.environment = fields.environment;
   if (['EADDRINUSE', 'EACCES', 'ECONNREFUSED', 'ETIMEDOUT', 'EAUTH', 'ENOTFOUND', 'DATABASE_NAME_REQUIRED', 'DATABASE_CONTENT_MISMATCH', 'MONGODB_URI_INVALID', 'INSUFFICIENT_STOCK', 'PRODUCT_UNAVAILABLE', 'VARIANT_UNAVAILABLE', 'INVENTORY_CHANGED', 'CART_EMPTY', 'RESTOCK_TARGET_MISSING', 'CART_CHANGED', 'TOTAL_CHANGED'].includes(fields.code)) record.code = fields.code;
   if (['database_configuration', 'database_tls', 'database_authentication', 'database_dns', 'database_index_conflict', 'database_network', 'database_selection_timeout', 'database_content_mismatch', 'brevo_smtp_key_detected'].includes(fields.diagnostic)) record.diagnostic = fields.diagnostic;
+  if (['cookie_missing', 'cookie_malformed', 'session_lookup_miss', 'session_expired_or_revoked', 'session_realm_mismatch', 'account_unavailable', 'session_version_mismatch', 'account_role_mismatch', 'account_not_production_verified', 'session_inactive', 'session_authenticated', 'session_persisted', 'cookie_issued'].includes(fields.stage)) record.stage = fields.stage;
+  if (['admin', 'owner'].includes(fields.realm)) record.realm = fields.realm;
   if (safeProviderCodes.has(fields.providerCode)) record.providerCode = fields.providerCode;
 
   const sink = req?.app?.locals?.config?.nodeEnv === 'test' && req.app.locals.config.testLogSink;
@@ -88,6 +90,8 @@ export function logEvent(level, event, fields = {}, explicitReq) {
         process.stdout.write(`[INFO] Server started on port ${record.port}\n`);
       } else if (event === 'database.connected') {
         process.stdout.write('[INFO] MongoDB connected\n');
+      } else if (event === 'staff.auth.diagnostic') {
+        process.stdout.write(`[${ts}] [${record.level}] ${record.event}${record.requestId ? ` requestId=${record.requestId}` : ''}${record.realm ? ` realm=${record.realm}` : ''}${record.stage ? ` stage=${record.stage}` : ''}\n`);
       } else {
         process.stdout.write(`[${ts}] [${record.level}] ${record.event}${record.status ? ` status=${record.status}` : ''}${record.reason ? ` reason=${record.reason}` : ''}${record.providerCode ? ` code=${record.providerCode}` : ''}\n`);
       }
