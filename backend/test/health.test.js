@@ -18,6 +18,11 @@ test('versioned health API preserves response and frontend CORS access', async (
   assert.equal(data.success, true);
   assert.equal(data.message, 'SON MASALA API is running');
   assert.ok(Number.isFinite(Date.parse(data.timestamp)));
+  const head = await fetch(url, { method: 'HEAD', headers: { Origin: 'http://localhost:3000' } });
+  assert.equal(head.status, 200);
+  assert.equal(await head.text(), '');
+  const invalid = await fetch(new URL('/api/v1/not-a-real-endpoint', url));
+  assert.equal(invalid.status, 404);
 });
 
 test('CORS allows both approved origins and rejects another origin', async (t) => {

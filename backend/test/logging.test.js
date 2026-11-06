@@ -48,6 +48,7 @@ test('request IDs, preflights, CORS rejections and database failures have one sa
   assert.equal(logs.at(-1).level, 'ERROR');
   await fetch(`${base}/api/v1/private-unknown-path/private-identity?token=private-value`);
   assert.equal(logs.at(-1).route, '/api/v1/:unmatched');
+  assert.equal(logs.at(-1).unmatchedPath, '/api/v1/:redacted/:redacted');
   assert.equal(logs.length, 5);
   assert.ok(logs.every(record => record.event === 'api.request'));
   assert.doesNotMatch(JSON.stringify(logs), /private-|Cookie|Authorization|Bearer|password|codeHash|tokenHash/);

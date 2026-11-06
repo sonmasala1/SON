@@ -27,6 +27,17 @@ export function safeRoute(req) {
   return '/api/v1/:unmatched';
 }
 
+function safeUnmatchedPath(req) {
+  const path = String(req.originalUrl || '/').split('?')[0];
+  if (['/', '/api/v1', '/api/v1/'].includes(path)) return path;
+  const publicSegments = new Set(['api', 'v1', 'admin', 'owner', 'auth', 'me', 'login', 'logout', 'mfa', 'verify', 'health', 'ready', 'cart', 'products', 'orders', 'customers', 'inventory', 'payments', 'shipping', 'reviews', 'checkout', 'categories', 'wishlist', 'google', 'otp', 'email', 'passkeys', 'dashboard']);
+  return path.split('/').map(segment => {
+    if (!segment) return '';
+    if (/^\d+$/.test(segment) || segment.length > 24 || !publicSegments.has(segment.toLowerCase())) return ':redacted';
+    return segment;
+  }).join('/').slice(0, 160) || '/';
+}
+
 function operation(req) {
   const route = safeRoute(req).replace(/^\/api\/v1/, '');
   if (operations.has(route)) return operations.get(route);
@@ -57,6 +68,7 @@ export function logEvent(level, event, fields = {}, explicitReq) {
   if (['development', 'test', 'production'].includes(fields.environment)) record.environment = fields.environment;
   if (['EADDRINUSE', 'EACCES', 'ECONNREFUSED', 'ETIMEDOUT', 'EAUTH', 'ENOTFOUND', 'DATABASE_NAME_REQUIRED', 'DATABASE_CONTENT_MISMATCH', 'MONGODB_URI_INVALID', 'INSUFFICIENT_STOCK', 'PRODUCT_UNAVAILABLE', 'VARIANT_UNAVAILABLE', 'INVENTORY_CHANGED', 'CART_EMPTY', 'RESTOCK_TARGET_MISSING', 'CART_CHANGED', 'TOTAL_CHANGED'].includes(fields.code)) record.code = fields.code;
   if (['database_configuration', 'database_tls', 'database_authentication', 'database_dns', 'database_index_conflict', 'database_network', 'database_selection_timeout', 'database_content_mismatch', 'brevo_smtp_key_detected'].includes(fields.diagnostic)) record.diagnostic = fields.diagnostic;
+  if (event === 'api.request' && fields.status === 404 && typeof fields.unmatchedPath === 'string' && fields.unmatchedPath.length <= 160 && /^[A-Za-z0-9_:/-]*$/.test(fields.unmatchedPath)) record.unmatchedPath = fields.unmatchedPath;
   if (['login_validation_succeeded', 'login_validation_failed', 'mfa_validation_failed', 'cookie_missing', 'cookie_malformed', 'session_not_found', 'session_realm_mismatch', 'session_revoked', 'session_expired', 'account_not_found', 'account_inactive', 'mfa_disabled', 'session_version_mismatch', 'account_role_mismatch', 'account_not_production_verified', 'session_inactive', 'session_authenticated', 'session_persisted', 'cookie_issued'].includes(fields.stage)) record.stage = fields.stage;
   if (['admin', 'owner'].includes(fields.realm)) record.realm = fields.realm;
   if (safeProviderCodes.has(fields.providerCode)) record.providerCode = fields.providerCode;
@@ -85,7 +97,8 @@ export function logEvent(level, event, fields = {}, explicitReq) {
           aborted: '',
         };
         const statusText = successful ? '' : ` — ${reasonLabels[record.reason] || String(record.reason || 'Request failed').replaceAll('_', ' ').replace(/\b\w/g, character => character.toUpperCase())}`;
-        process.stdout.write(`[${symbol} ${record.status}] ${record.method} ${record.route}${statusText}\n`);
+        const unmatched = record.unmatchedPath ? ` path=${record.unmatchedPath}` : '';
+        process.stdout.write(`[${symbol} ${record.status}] ${record.method} ${record.route}${unmatched}${statusText}\n`);
       } else if (event === 'server.started') {
         process.stdout.write(`[INFO] Server started on port ${record.port}\n`);
       } else if (event === 'database.connected') {
@@ -112,7 +125,7 @@ export function requestLogging(req, res, next) {
     recorded = true;
     const status = aborted ? 499 : res.statusCode;
     const reason = aborted ? 'aborted' : req.logFailure || (status === 429 ? 'rate_limited' : undefined);
-    logEvent(status >= 500 ? 'ERROR' : status >= 400 || reason ? 'WARN' : 'INFO', aborted ? 'api.aborted' : 'api.request', { status, durationMs: Math.round((performance.now() - start) * 100) / 100, reason }, req);
+    logEvent(status >= 500 ? 'ERROR' : status >= 400 || reason ? 'WARN' : 'INFO', aborted ? 'api.aborted' : 'api.request', { status, durationMs: Math.round((performance.now() - start) * 100) / 100, reason, ...(status === 404 ? { unmatchedPath: safeUnmatchedPath(req) } : {}) }, req);
   }
   res.once('finish', () => complete());
   res.once('close', () => { if (!res.writableFinished) complete(true); });
