@@ -27,6 +27,7 @@ export async function consumeChallenge(req, challenge, session) {
 }
 export async function failedLogin(req, account, attemptedId, action = 'STAFF_LOGIN_FAILED') {
   req.logFailure = action === 'STAFF_MFA_FAILED' ? 'mfa_invalid_or_replayed' : 'credentials_or_account_unavailable';
+  logEvent('WARN', 'staff.auth.diagnostic', { stage: action === 'STAFF_MFA_FAILED' ? 'mfa_validation_failed' : 'login_validation_failed', realm: req.staffRealm }, req);
   if (account) {
     const updated = await AdminAccount.findByIdAndUpdate(account._id, { $inc: { failedLoginAttempts: 1 } }, { new: true });
     if (updated.failedLoginAttempts >= 5) await AdminAccount.updateOne({ _id: account._id }, { lockedUntil: new Date(securityNow(req) + 15 * 60000) });
@@ -44,6 +45,7 @@ export async function beginStaffLogin(req, realm, adminId, password) {
   const passwordValid = await verifyPassword(account?.passwordHash, password);
   const allowed = account && account.status === 'ACTIVE' && account.mfaEnabled && (realm === 'owner' ? account.role === 'OWNER' : account.role !== 'OWNER') && (!account.lockedUntil || account.lockedUntil <= new Date(securityNow(req))) && (req.app.locals.config.nodeEnv !== 'production' || (account.emailVerifiedAt && account.verificationSource !== 'DEVELOPMENT_PREVIEW'));
   if (!passwordValid || !allowed) { await failedLogin(req, account, adminId); throw httpError(401, 'ID, password, or account access could not be verified.'); }
+  logEvent('INFO', 'staff.auth.diagnostic', { stage: 'login_validation_succeeded', realm }, req);
   const { token } = await createChallenge(req, { accountId: account._id, realm, kind: 'LOGIN' });
   return { challengeToken: token, requiresMfa: true };
 }
@@ -62,6 +64,7 @@ export async function loginStaffWithSecurityCode(req, realm, adminId, password, 
     await failedLogin(req, account, adminId, 'STAFF_LOGIN_FAILED');
     throw httpError(401, 'ID, password, or security code could not be verified.');
   }
+  logEvent('INFO', 'staff.auth.diagnostic', { stage: 'login_validation_succeeded', realm }, req);
   let result;
   await mongoose.connection.transaction(async session => {
     result = await makeSession(req, account, realm, 'ADMIN_SECURITY_CODE', session);

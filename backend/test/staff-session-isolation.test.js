@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { authenticateStaff, requirePermission, staffCsrf } from '../src/middleware/staffAccess.js';
+import { authenticateStaff, requirePermission, staffCsrf, staffCookie } from '../src/middleware/staffAccess.js';
 import { staffLogout } from '../src/controllers/staffAuthController.js';
 import { logout as customerLogout } from '../src/controllers/authController.js';
 import { AdminAccount, AdminSession, AdminAuditLog, AdminChallenge } from '../src/models/administration.js';
@@ -29,6 +29,26 @@ test('customer credentials cannot authorize staff APIs or query staff sessions',
   assert.equal(req.staff, undefined);
   assert.equal(lookup.mock.callCount(), 0);
   assert.equal((await invoke(authenticateStaff(), request())).status, 401);
+});
+
+test('unknown staff cookies are rejected and logged by request ID without logging cookie values', async t => {
+  const token = 'x'.repeat(43), logs = [];
+  const req = request({ son_admin_session: token });
+  req.requestId = 'ca5e26df-c251-40cc-8bef-5b3bf38ccea5';
+  req.app.locals.config.testLogSink = record => logs.push(record);
+  t.mock.method(AdminSession, 'findOne', async () => null);
+  const failure = await invoke(authenticateStaff(), req);
+  assert.equal(failure.status, 401);
+  assert.ok(logs.some(record => record.requestId === req.requestId && record.stage === 'session_not_found'));
+  assert.equal(JSON.stringify(logs).includes(token), false);
+});
+
+test('production staff cookies are Secure and use the configured same-site policy', () => {
+  const req = request();
+  req.app.locals.config = { nodeEnv: 'production', crossSiteCookies: false };
+  assert.deepEqual(staffCookie(req, 'admin'), { httpOnly: true, secure: true, sameSite: 'strict', path: '/api/v1', maxAge: 8 * 3600000 });
+  req.app.locals.config.crossSiteCookies = true;
+  assert.equal(staffCookie(req, 'admin').sameSite, 'none');
 });
 
 test('admin cookie takes precedence over owner and customer cookies; server validates session and MFA', async t => {

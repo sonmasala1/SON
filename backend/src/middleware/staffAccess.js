@@ -24,10 +24,26 @@ export function authenticateStaff(ownerOnly = false) {
         sawCookie = true;
         if (!/^[A-Za-z0-9_-]{43}$/.test(token)) { logEvent('WARN', 'staff.auth.diagnostic', { stage: 'cookie_malformed', realm }, req); continue; }
         sawValidFormat = true;
-        const session = await AdminSession.findOne({ tokenHash: digest(token), realm, revokedAt: null, expiresAt: { $gt: new Date(securityNow(req)) } });
-        if (!session) { logEvent('WARN', 'staff.auth.diagnostic', { stage: 'session_lookup_miss', realm }, req); continue; }
+        const tokenHash = digest(token);
+        const session = await AdminSession.findOne({ tokenHash, realm, revokedAt: null, expiresAt: { $gt: new Date(securityNow(req)) } });
+        if (!session) {
+          const storedSession = await AdminSession.findOne({ tokenHash });
+          const stage = !storedSession ? 'session_not_found'
+            : storedSession.realm !== realm ? 'session_realm_mismatch'
+              : storedSession.revokedAt ? 'session_revoked' : 'session_expired';
+          logEvent('WARN', 'staff.auth.diagnostic', { stage, realm }, req);
+          continue;
+        }
         const account = await AdminAccount.findOne({ _id: session.accountId, status: 'ACTIVE', mfaEnabled: true, sessionVersion: session.sessionVersion });
-        if (!account) { logEvent('WARN', 'staff.auth.diagnostic', { stage: 'account_unavailable', realm }, req); continue; }
+        if (!account) {
+          const currentAccount = await AdminAccount.findById(session.accountId).select('status mfaEnabled sessionVersion');
+          const stage = !currentAccount ? 'account_not_found'
+            : currentAccount.sessionVersion !== session.sessionVersion ? 'session_version_mismatch'
+              : currentAccount.status !== 'ACTIVE' ? 'account_inactive'
+                : 'mfa_disabled';
+          logEvent('WARN', 'staff.auth.diagnostic', { stage, realm }, req);
+          continue;
+        }
         if ((realm === 'owner') !== (account.role === 'OWNER')) { logEvent('WARN', 'staff.auth.diagnostic', { stage: 'account_role_mismatch', realm }, req); continue; }
         if (securityNow(req) - new Date(session.lastSeenAt || session.createdAt).getTime() > (realm === 'owner' ? 30 : 60) * 60000) { await AdminSession.updateOne({ _id: session._id }, { revokedAt: new Date(securityNow(req)) }); logEvent('WARN', 'staff.auth.diagnostic', { stage: 'session_inactive', realm }, req); continue; }
         if (req.app.locals.config.nodeEnv === 'production' && (!account.emailVerifiedAt || account.verificationSource === 'DEVELOPMENT_PREVIEW')) { logEvent('WARN', 'staff.auth.diagnostic', { stage: 'account_not_production_verified', realm }, req); continue; }
