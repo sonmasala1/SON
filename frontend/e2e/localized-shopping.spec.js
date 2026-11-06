@@ -324,7 +324,8 @@ test("Hindi owner and staff dashboards retain separate authentication and custom
   staffCredentials,
   ownerCredentials,
 }) => {
-  await page.goto("/admin/login");
+  // Staff pages have no language toggle; the shared locale cookie chosen on the storefront applies.
+  await page.goto("/");
   await hindi(page);
   for (const [realm, credentials, button] of [
     ["admin", staffCredentials, "प्रशासक के रूप में लॉग इन करें"],
@@ -333,6 +334,7 @@ test("Hindi owner and staff dashboards retain separate authentication and custom
     await page.goto(`/${realm}/login`);
     await page.locator('input[name="adminId"]').fill(credentials.adminId);
     await page.locator('input[name="password"]').fill(credentials.password);
+    await page.getByRole("button", { name: "इसके बजाय मेरा प्रमाणक ऐप उपयोग करें", exact: true }).click();
     await page
       .locator('input[name="mfaCode"]')
       .fill(mfaCode(credentials.secret));

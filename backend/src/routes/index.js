@@ -23,6 +23,7 @@ export default function createRoutes() {
 const router = Router();
 router.use('/admin', staffRouter('admin'));
 router.use('/owner', staffRouter('owner'));
+router.get('/', getHealth);
 router.get('/health', getHealth);
 router.get('/ready', getReadiness);
 router.get('/products', requireDatabase, getProducts);

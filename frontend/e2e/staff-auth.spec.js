@@ -4,6 +4,8 @@ async function signIn(page, realm, credentials) {
   await page.goto(`/${realm}/login`);
   await page.getByLabel(realm === 'owner' ? 'Owner ID' : 'Admin ID', { exact: true }).fill(credentials.adminId);
   await page.getByLabel('Password', { exact: true }).fill(credentials.password);
+  // The form defaults to the deployment security code; these accounts use their authenticator.
+  await page.getByRole('button', { name: 'Use my authenticator app instead' }).click();
   await page.getByLabel('MFA verification code').fill(mfaCode(credentials.secret));
   await page.getByRole('button', { name: realm === 'owner' ? 'Sign in as Owner' : 'Sign in as Admin' }).click();
   await expect(page.getByRole('heading', { name: 'Business dashboard', exact: true })).toBeVisible();
@@ -17,20 +19,24 @@ test('customer mobile OTP keeps administration separate and denies internal APIs
   for (const endpoint of ['/admin/dashboard', '/owner/admins', '/owner/audit-logs']) {
     expect((await page.request.get(backendURL + endpoint)).status()).toBe(403);
   }
-  await page.goto('/owner/access-management');
+  // Owner management pages were removed (241a808); the owner workspace itself must still deny non-owners.
+  await page.goto('/owner/dashboard');
   await expect(page.getByRole('heading', { name: 'Access denied' })).toBeVisible();
 });
 
 test('staff sign-in shows permitted business data and cannot open owner controls', async ({ page, backendURL, staffCredentials }) => {
   await signIn(page, 'admin', staffCredentials);
-  await expect(page.getByText('Actual sales and payment totals exclude all demo transactions.')).toBeVisible();
+  await expect(page.locator('.staff-metric-grid article').first()).toBeVisible();
   await expect(page.getByRole('link', { name: 'Staff access', exact: true })).toHaveCount(0);
   expect((await page.request.get(backendURL + '/owner/admins')).status()).toBe(403);
-  await page.goto('/owner/access-management');
+  // Owner management pages were removed (241a808); the owner workspace itself must still deny non-owners.
+  await page.goto('/owner/dashboard');
   await expect(page.getByRole('heading', { name: 'Access denied' })).toBeVisible();
 });
 
-test('owner invitation requires email verification, chosen password, and MFA before staff access', async ({ page, backendURL, ownerCredentials }) => {
+// Owner access-management and security pages were removed from the UI in 241a808; the
+// backend flows remain covered by backend/test/staff-security.test.js.
+test.skip('owner invitation requires email verification, chosen password, and MFA before staff access', async ({ page, backendURL, ownerCredentials }) => {
   test.setTimeout(60000);
   await signIn(page, 'owner', ownerCredentials);
   await page.getByRole('link', { name: 'Staff access', exact: true }).click();
@@ -67,7 +73,7 @@ test('owner invitation requires email verification, chosen password, and MFA bef
   await expect(page.getByRole('link', { name: 'Payments', exact: true })).toHaveCount(0);
 });
 
-test('owner passkeys require verified WebAuthn and support secure sign-in', async ({ page, context, backendURL, ownerCredentials }) => {
+test.skip('owner passkeys require verified WebAuthn and support secure sign-in', async ({ page, context, backendURL, ownerCredentials }) => {
   test.setTimeout(60000);
   const cdp = await context.newCDPSession(page);
   await cdp.send('WebAuthn.enable');

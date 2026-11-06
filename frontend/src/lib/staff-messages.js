@@ -172,6 +172,24 @@ Verifying secure access…	सुरक्षित पहुँच का स�
 Sign in as Owner	मालिक के रूप में लॉग इन करें
 Sign in as Admin	प्रशासक के रूप में लॉग इन करें
 Sign in with a passkey	पासकी से लॉग इन करें
+Admin Security Code	प्रशासक सुरक्षा कोड
+Owner Security Code	मालिक सुरक्षा कोड
+Admin security code	प्रशासक सुरक्षा कोड
+Owner security code	मालिक सुरक्षा कोड
+Use your configured staff ID, password, and private admin security code.	अपनी कर्मचारी आईडी, पासवर्ड और निजी प्रशासक सुरक्षा कोड भरें।
+Use your configured staff ID, password, and private owner security code.	अपनी कर्मचारी आईडी, पासवर्ड और निजी मालिक सुरक्षा कोड भरें।
+Use your staff ID, password, and the current code from your authenticator app.	अपनी कर्मचारी आईडी, पासवर्ड और प्रमाणक ऐप का मौजूदा कोड भरें।
+Enter your private six-digit admin security code.	अपना निजी छह अंकों का प्रशासक सुरक्षा कोड भरें।
+Enter your private six-digit owner security code.	अपना निजी छह अंकों का मालिक सुरक्षा कोड भरें।
+Enter the current six-digit code from your authenticator app, or one unused recovery code.	प्रमाणक ऐप का मौजूदा छह अंकों का कोड या एक अप्रयुक्त रिकवरी कोड भरें।
+Use my authenticator app instead	इसके बजाय मेरा प्रमाणक ऐप उपयोग करें
+Use the security code instead	इसके बजाय सुरक्षा कोड उपयोग करें
+Admin access requires a valid Admin ID, password, and a second factor. Public registration is unavailable.	प्रशासक पहुँच के लिए मान्य प्रशासक आईडी, पासवर्ड और दूसरा सत्यापन ज़रूरी है। सार्वजनिक पंजीकरण उपलब्ध नहीं है।
+Owner access requires a valid Owner ID, password, and a second factor. Public registration is unavailable.	मालिक पहुँच के लिए मान्य मालिक आईडी, पासवर्ड और दूसरा सत्यापन ज़रूरी है। सार्वजनिक पंजीकरण उपलब्ध नहीं है।
+Enter your password	अपना पासवर्ड भरें
+Enter your 6-digit security code	अपना 6 अंकों का सुरक्षा कोड भरें
+6-digit code or recovery code	6 अंकों का कोड या रिकवरी कोड
+Sign-in succeeded, but this browser did not keep the secure session cookie. Allow cookies for this site (or disable strict tracking prevention), then sign in again.	लॉग इन सफल रहा, लेकिन इस ब्राउज़र ने सुरक्षित सत्र कुकी नहीं रखी। इस साइट के लिए कुकी की अनुमति दें (या सख्त ट्रैकिंग सुरक्षा बंद करें), फिर दोबारा लॉग इन करें।
 Initial owner setup and emergency recovery require the protected deployment CLI. There is no public owner registration.	मालिक का शुरुआती सेटअप और आपातकालीन रिकवरी सुरक्षित कमांड लाइन से होती है। मालिक का सार्वजनिक पंजीकरण नहीं है।
 Administrator accounts require an owner-approved invitation and completed MFA enrollment. Public registration is unavailable.	प्रशासक खाते के लिए मालिक की मंज़ूरी वाला आमंत्रण और पूरा बहु-कारक पंजीकरण ज़रूरी है। सार्वजनिक पंजीकरण उपलब्ध नहीं है।
 Your account is not authorized to access this area.	आपके खाते को इस क्षेत्र की अनुमति नहीं है।

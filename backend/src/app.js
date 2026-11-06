@@ -11,6 +11,10 @@ export function safeRequestUrl(req) {
   return req.originalUrl.split('?')[0];
 }
 
+export function serviceInfo(_req, res) {
+  res.set('Cache-Control', 'no-store').json({ success: true, service: 'son-masala-api', message: 'SON MASALA API is running', health: '/api/v1/health', readiness: '/api/v1/ready' });
+}
+
 export function createApp({ allowedOrigins = ['http://localhost:3000', 'https://son-dusky.vercel.app'], config = {} } = {}) {
   const app = express();
   app.set('trust proxy', 1);
@@ -48,6 +52,11 @@ export function createApp({ allowedOrigins = ['http://localhost:3000', 'https://
   app.use(express.text({ type: 'text/csv', limit: '2mb' }));
   app.use(express.json({ limit: '32kb' }));
   app.use(cookieParser());
+  // Hosting platforms and uptime monitors probe the service root with GET/HEAD.
+  // Answer them explicitly instead of logging them as unmatched API requests.
+  app.get(['/', '/healthz'], serviceInfo);
+  app.get('/favicon.ico', (_req, res) => res.set('Cache-Control', 'public, max-age=86400').status(204).end());
+  app.get('/robots.txt', (_req, res) => res.type('text/plain').set('Cache-Control', 'public, max-age=86400').send('User-agent: *\nDisallow: /\n'));
   app.use('/api/v1', createRoutes());
   app.use((_req, res) => res.status(404).json({ success: false, message: 'Endpoint not found' }));
   app.use(errorHandler);

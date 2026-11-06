@@ -104,6 +104,13 @@ For an isolated **local** demo only, `AUTH_DEV_PREVIEW=true` returns explicitly 
 
 At the time of verification, SMTP and Twilio credentials were absent. Real delivery has not been tested. Fill in the environment values and restart the API before using these channels.
 
+## Verifying a staff email for production
+
+Production refuses staff sessions for accounts without a verified email (and for accounts verified only by development preview). Accounts created by `npm run staff:sync-env` use non-deliverable addresses, so they are refused until verified. Sign-in now reports this with `403 STAFF_EMAIL_UNVERIFIED` instead of issuing a session that every later request rejects with 401.
+
+From an interactive terminal whose `backend/.env` points at the production database and has working Brevo delivery, run `npm run staff:verify-email`. Enter the staff login ID and a real email address; a six-digit code is sent to that address. Entering the code sets the account email, records `emailVerifiedAt` with source `OPERATOR_EMAIL_OTP`, revokes the account's existing sessions and writes a `STAFF_EMAIL_VERIFIED` audit record. Reserved domains (`.invalid`, `.test`, `example.*`) and development-preview codes are refused.
+
+Staff may sign in with either the deployment security code (`ADMIN_SECURITY_CODE_HASH` / `OWNER_SECURITY_CODE_HASH`) or their own authenticator (TOTP or a recovery code) via “Use my authenticator app instead”. Both paths apply the same account eligibility rule as per-request session validation.
 ## Production configuration
 
 Use HTTPS, set `STAFF_APP_ORIGIN` to the exact frontend origin and `ADMIN_WEBAUTHN_RP_ID` to its host (without a scheme or port), and configure `CORS_ORIGINS`. The API rejects production startup without an HTTPS staff origin, matching RP ID, and encryption key. Deploy frontend and API on the same site, or proxy `/api/v1` to Express, so SameSite Strict cookies can be sent. A different unrelated API site is incompatible with these cookies. If a reverse proxy is used, explicitly configure trusted proxy hops before deployment so rate limiting uses the correct client IP; the local server does not trust arbitrary forwarded headers.

@@ -59,9 +59,9 @@ test('admin cookie takes precedence over owner and customer cookies; server vali
     assert.equal(query.revokedAt, null); assert.ok(query.expiresAt.$gt instanceof Date);
     return record;
   });
-  t.mock.method(AdminAccount, 'findOne', async query => {
-    assert.deepEqual(query, { _id: 'admin-account', status: 'ACTIVE', mfaEnabled: true, sessionVersion: 2 });
-    return { _id: 'admin-account', fullName: 'Only Admin', role: 'ADMIN', permissions: ['dashboard.view', 'owner.access'] };
+  t.mock.method(AdminAccount, 'findById', async id => {
+    assert.equal(id, 'admin-account');
+    return { _id: 'admin-account', fullName: 'Only Admin', role: 'ADMIN', status: 'ACTIVE', mfaEnabled: true, sessionVersion: 2, permissions: ['dashboard.view', 'owner.access'] };
   });
   assert.equal(await invoke(authenticateStaff(), req), undefined);
   assert.equal(req.staff.fullName, 'Only Admin'); assert.equal(req.staffRealm, 'admin');
@@ -110,4 +110,59 @@ test('configured fixed MFA codes cannot replace a valid authenticator code', asy
   t.mock.method(AdminAccount, 'findByIdAndUpdate', async () => ({ failedLoginAttempts: 1 }));
   t.mock.method(AdminAuditLog, 'create', async () => [{}]);
   await assert.rejects(verifyStaffMfa(req, 'admin', 'a'.repeat(43), code), { status: 401 });
+});
+
+// Regression: production accounts without verified email used to pass security-code login,
+// receive a session cookie, and then fail every /auth/me with 401 (account_not_production_verified).
+async function securityCodeFixture(t, accountFields, nodeEnv = 'production') {
+  const { hashPassword } = await import('../src/services/staffCrypto.js');
+  const password = 'correct horse battery staple', code = '482915';
+  const req = request(); req.app.locals.config = { ...req.app.locals.config, nodeEnv, adminSecurityCodeHash: await hashPassword(code) };
+  req.body = { adminId: 'ADMIN01', password, securityCode: code };
+  const passwordHash = await hashPassword(password);
+  const account = { _id: 'admin-account', id: 'admin-account', adminId: 'ADMIN01', role: 'ADMIN', status: 'ACTIVE', mfaEnabled: true, sessionVersion: 0, permissions: ['dashboard.view'], passwordHash, ...accountFields };
+  t.mock.method(AdminAccount, 'findOne', () => ({ select: async () => account }));
+  t.mock.method(AdminAccount, 'findByIdAndUpdate', async () => ({ failedLoginAttempts: 1 }));
+  const audits = [];
+  t.mock.method(AdminAuditLog, 'create', async entries => { audits.push(...entries); return [{}]; });
+  const created = t.mock.method(AdminSession, 'create', async () => { throw new Error('A session must not be created'); });
+  return { req, account, audits, created };
+}
+
+test('production security-code login refuses unverified staff email instead of issuing a dead session', async t => {
+  const { loginStaffWithSecurityCode } = await import('../src/services/staffAuthService.js');
+  for (const fields of [{ verificationSource: 'ENVIRONMENT_CONFIG' }, { verificationSource: 'DEVELOPMENT_PREVIEW', emailVerifiedAt: new Date() }]) {
+    const { req, audits, created } = await securityCodeFixture(t, fields);
+    await assert.rejects(loginStaffWithSecurityCode(req, 'admin', 'ADMIN01', req.body.password, req.body.securityCode), error => error.status === 403 && error.code === 'STAFF_EMAIL_UNVERIFIED' && error.expose === true);
+    assert.equal(created.mock.callCount(), 0);
+    assert.ok(audits.some(entry => entry.action === 'STAFF_LOGIN_DENIED'));
+  }
+});
+
+test('security-code login refuses accounts that the session middleware would reject', async t => {
+  const { loginStaffWithSecurityCode } = await import('../src/services/staffAuthService.js');
+  for (const fields of [{ mfaEnabled: false }, { status: 'SUSPENDED' }, { lockedUntil: new Date(Date.now() + 60000) }]) {
+    const { req, created } = await securityCodeFixture(t, fields, 'test');
+    await assert.rejects(loginStaffWithSecurityCode(req, 'admin', 'ADMIN01', req.body.password, req.body.securityCode), { status: 401 });
+    assert.equal(created.mock.callCount(), 0);
+  }
+});
+
+test('session middleware and login share one eligibility rule', async () => {
+  const { staffIneligibility } = await import('../src/services/staffEligibility.js');
+  const base = { role: 'ADMIN', status: 'ACTIVE', mfaEnabled: true, emailVerifiedAt: new Date(), verificationSource: 'STAFF_INVITATION' };
+  assert.equal(staffIneligibility(base, 'admin', { nodeEnv: 'production' }), null);
+  assert.equal(staffIneligibility({ ...base, emailVerifiedAt: null }, 'admin', { nodeEnv: 'production' }), 'account_not_production_verified');
+  assert.equal(staffIneligibility({ ...base, emailVerifiedAt: null }, 'admin', { nodeEnv: 'development' }), null);
+  assert.equal(staffIneligibility(base, 'owner', { nodeEnv: 'production' }), 'account_role_mismatch');
+  assert.equal(staffIneligibility(null, 'admin', { nodeEnv: 'production' }), 'account_not_found');
+});
+
+test('production session middleware rejects an unverified account', async t => {
+  const req = request({ son_admin_session: 'a'.repeat(43) });
+  req.app.locals.config = { ...req.app.locals.config, nodeEnv: 'production' };
+  t.mock.method(AdminSession, 'findOne', async () => ({ _id: 's', accountId: 'admin-account', sessionVersion: 0, lastSeenAt: new Date() }));
+  t.mock.method(AdminAccount, 'findById', async () => ({ _id: 'admin-account', role: 'ADMIN', status: 'ACTIVE', mfaEnabled: true, sessionVersion: 0, verificationSource: 'ENVIRONMENT_CONFIG', permissions: [] }));
+  assert.equal((await invoke(authenticateStaff(), req)).status, 401);
+  assert.equal(req.staff, undefined);
 });

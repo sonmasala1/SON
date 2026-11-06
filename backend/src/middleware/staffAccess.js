@@ -4,6 +4,7 @@ import { securityNow, audit } from '../services/staffAudit.js';
 import { httpError } from '../utils/httpError.js';
 import { allPermissions } from '../config/permissions.js';
 import { logEvent } from '../services/logger.js';
+import { staffIneligibility } from '../services/staffEligibility.js';
 
 export function staffCookie(req, realm, clear = false) { return { httpOnly: true, secure: req.app.locals.config.nodeEnv === 'production', sameSite: req.app.locals.config.crossSiteCookies ? 'none' : 'strict', path: '/api/v1', ...(clear ? {} : { maxAge: realm === 'owner' ? 4 * 3600000 : 8 * 3600000 }) }; }
 export function staffOrigin(req, _res, next) {
@@ -34,19 +35,12 @@ export function authenticateStaff(ownerOnly = false) {
           logEvent('WARN', 'staff.auth.diagnostic', { stage, realm }, req);
           continue;
         }
-        const account = await AdminAccount.findOne({ _id: session.accountId, status: 'ACTIVE', mfaEnabled: true, sessionVersion: session.sessionVersion });
-        if (!account) {
-          const currentAccount = await AdminAccount.findById(session.accountId).select('status mfaEnabled sessionVersion');
-          const stage = !currentAccount ? 'account_not_found'
-            : currentAccount.sessionVersion !== session.sessionVersion ? 'session_version_mismatch'
-              : currentAccount.status !== 'ACTIVE' ? 'account_inactive'
-                : 'mfa_disabled';
-          logEvent('WARN', 'staff.auth.diagnostic', { stage, realm }, req);
-          continue;
-        }
-        if ((realm === 'owner') !== (account.role === 'OWNER')) { logEvent('WARN', 'staff.auth.diagnostic', { stage: 'account_role_mismatch', realm }, req); continue; }
+        const account = await AdminAccount.findById(session.accountId);
+        const stage = account && account.sessionVersion !== session.sessionVersion
+          ? 'session_version_mismatch'
+          : staffIneligibility(account, realm, req.app.locals.config);
+        if (stage) { logEvent('WARN', 'staff.auth.diagnostic', { stage, realm }, req); continue; }
         if (securityNow(req) - new Date(session.lastSeenAt || session.createdAt).getTime() > (realm === 'owner' ? 30 : 60) * 60000) { await AdminSession.updateOne({ _id: session._id }, { revokedAt: new Date(securityNow(req)) }); logEvent('WARN', 'staff.auth.diagnostic', { stage: 'session_inactive', realm }, req); continue; }
-        if (req.app.locals.config.nodeEnv === 'production' && (!account.emailVerifiedAt || account.verificationSource === 'DEVELOPMENT_PREVIEW')) { logEvent('WARN', 'staff.auth.diagnostic', { stage: 'account_not_production_verified', realm }, req); continue; }
         req.staff = account; req.staffSession = session; req.staffRealm = realm;
         req.staffPermissions = account.role === 'OWNER' ? allPermissions : account.permissions.filter(value => !value.startsWith('owner.') && !value.startsWith('staff.'));
         req.csrfToken = keyedDigest(`csrf:${token}`, req.app.locals.config);

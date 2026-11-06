@@ -7,6 +7,7 @@ import { createChallenge, getChallenge, consumeChallenge, makeSession, sendStaff
 import { digest, equals, decryptSecret, mfaStep } from '../services/staffCrypto.js';
 import { audit, securityNow } from '../services/staffAudit.js';
 import { httpError } from '../utils/httpError.js';
+import { staffIneligibility } from '../services/staffEligibility.js';
 
 export async function registerPasskeyOptions(req, res, next) {
   try {
@@ -57,7 +58,7 @@ export const passkeyLoginVerify = realm => async (req, res, next) => {
     const challenge = await getChallenge(req, challengeToken, 'PASSKEY_AUTH', realm);
     const account = await AdminAccount.findOne({ _id: challenge.accountId, status: 'ACTIVE', mfaEnabled: true, role: realm === 'owner' ? 'OWNER' : { $ne: 'OWNER' } });
     const key = await AdminPasskey.findOne({ accountId: challenge.accountId, credentialId: response.id });
-    if (!account || !key || account.lockedUntil > new Date(securityNow(req)) || (req.app.locals.config.nodeEnv === 'production' && (!account.emailVerifiedAt || account.verificationSource === 'DEVELOPMENT_PREVIEW'))) { await AdminChallenge.updateOne({ _id: challenge._id }, { $inc: { attempts: 1 } }); await failedLogin(req, account, null, 'STAFF_PASSKEY_FAILED'); throw httpError(401, 'Passkey sign-in could not be verified.'); }
+    if (!key || staffIneligibility(account, realm, req.app.locals.config, { now: securityNow(req), checkLock: true })) { await AdminChallenge.updateOne({ _id: challenge._id }, { $inc: { attempts: 1 } }); await failedLogin(req, account, null, 'STAFF_PASSKEY_FAILED'); throw httpError(401, 'Passkey sign-in could not be verified.'); }
     const verified = await verifyAuthenticationResponse({ response, expectedChallenge: value => equals(digest(value), challenge.challengeHash), expectedOrigin: req.app.locals.config.webAuthnOrigin, expectedRPID: req.app.locals.config.webAuthnRpId, requireUserVerification: true, credential: { id: key.credentialId, publicKey: new Uint8Array(key.publicKey), counter: key.counter, transports: key.transports } }).catch(() => null);
     if (!verified?.verified) { await AdminChallenge.updateOne({ _id: challenge._id }, { $inc: { attempts: 1 } }); await failedLogin(req, account, null, 'STAFF_PASSKEY_FAILED'); throw httpError(401, 'Passkey sign-in could not be verified.'); }
     let result;

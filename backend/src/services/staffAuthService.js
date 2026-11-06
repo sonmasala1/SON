@@ -6,6 +6,7 @@ import { staffCookie } from '../middleware/staffAccess.js';
 import { allPermissions, ownerOnlyPermission } from '../config/permissions.js';
 import { httpError } from '../utils/httpError.js';
 import { logEvent } from './logger.js';
+import { staffIneligibility } from './staffEligibility.js';
 
 export function staffView(account) { return { id: account.id || String(account._id), adminId: (account.verificationSource === 'ENVIRONMENT_CONFIG' && account.loginId) || account.adminId, fullName: account.fullName, email: account.email, phone: account.phone, role: account.role, permissions: account.role === 'OWNER' ? allPermissions : account.permissions.filter(value => !ownerOnlyPermission(value)), status: account.status, mfaEnabled: account.mfaEnabled, lastLoginAt: account.lastLoginAt, emailVerifiedAt: account.emailVerifiedAt, verificationSource: account.verificationSource }; }
 export async function createChallenge(req, fields, minutes = 5) {
@@ -40,11 +41,25 @@ export function staffLoginFilter(realm, adminId) {
     $or: [{ adminId }, { loginId: adminId }],
   };
 }
+// Credentials were valid but the account cannot hold a session. Only the production
+// email-verification state is disclosed, and only after every credential was verified.
+async function rejectIneligible(req, account, realm, stage, attemptedId, action = 'STAFF_LOGIN_FAILED') {
+  logEvent('WARN', 'staff.auth.diagnostic', { stage, realm }, req);
+  if (stage === 'account_not_production_verified') {
+    req.logFailure = 'account_unavailable';
+    await audit(req, 'STAFF_LOGIN_DENIED', { targetId: account.id, result: 'FAILURE', changes: { realm, reason: stage } });
+    throw Object.assign(httpError(403, 'This staff account has not completed production email verification. Ask the deployment administrator to run "npm run staff:verify-email" for this account, then sign in again.'), { code: 'STAFF_EMAIL_UNVERIFIED', expose: true, logReason: 'account_unavailable' });
+  }
+  await failedLogin(req, account, attemptedId, action);
+  throw httpError(401, 'ID, password, or account access could not be verified.');
+}
+
 export async function beginStaffLogin(req, realm, adminId, password) {
   const account = await AdminAccount.findOne(staffLoginFilter(realm, adminId)).select('+passwordHash');
   const passwordValid = await verifyPassword(account?.passwordHash, password);
-  const allowed = account && account.status === 'ACTIVE' && account.mfaEnabled && (realm === 'owner' ? account.role === 'OWNER' : account.role !== 'OWNER') && (!account.lockedUntil || account.lockedUntil <= new Date(securityNow(req))) && (req.app.locals.config.nodeEnv !== 'production' || (account.emailVerifiedAt && account.verificationSource !== 'DEVELOPMENT_PREVIEW'));
-  if (!passwordValid || !allowed) { await failedLogin(req, account, adminId); throw httpError(401, 'ID, password, or account access could not be verified.'); }
+  if (!passwordValid || !account) { await failedLogin(req, account, adminId); throw httpError(401, 'ID, password, or account access could not be verified.'); }
+  const stage = staffIneligibility(account, realm, req.app.locals.config, { now: securityNow(req), checkLock: true });
+  if (stage) await rejectIneligible(req, account, realm, stage, adminId);
   logEvent('INFO', 'staff.auth.diagnostic', { stage: 'login_validation_succeeded', realm }, req);
   const { token } = await createChallenge(req, { accountId: account._id, realm, kind: 'LOGIN' });
   return { challengeToken: token, requiresMfa: true };
@@ -59,11 +74,14 @@ export async function loginStaffWithSecurityCode(req, realm, adminId, password, 
   const securityValid = /^\d{6}$/.test(code) && securityHash
     ? await verifyPassword(securityHash, code)
     : false;
-  const allowed = account && account.status === 'ACTIVE' && (realm === 'owner' ? account.role === 'OWNER' : account.role !== 'OWNER') && (!account.lockedUntil || account.lockedUntil <= new Date(securityNow(req)));
-  if (!passwordValid || !securityValid || !allowed) {
+  if (!passwordValid || !securityValid || !account) {
     await failedLogin(req, account, adminId, 'STAFF_LOGIN_FAILED');
     throw httpError(401, 'ID, password, or security code could not be verified.');
   }
+  // The same rule authenticateStaff applies on every request (status, completed MFA
+  // enrolment, realm, lock and production email verification).
+  const stage = staffIneligibility(account, realm, req.app.locals.config, { now: securityNow(req), checkLock: true });
+  if (stage) await rejectIneligible(req, account, realm, stage, adminId);
   logEvent('INFO', 'staff.auth.diagnostic', { stage: 'login_validation_succeeded', realm }, req);
   let result;
   await mongoose.connection.transaction(async session => {
@@ -91,7 +109,8 @@ export async function verifyStaffMfa(req, realm, token, code) {
   const step = /^\d{6}$/.test(code) && account?.mfaSecretEncrypted
     ? mfaStep(decryptSecret(account.mfaSecretEncrypted, req.app.locals.config, account.id), code, securityNow(req))
     : null;
-  if (!account || account.status !== 'ACTIVE' || (!recovery && (step === null || step <= account.lastMfaStep)) || account.lockedUntil > new Date(securityNow(req))) {
+  const ineligible = staffIneligibility(account, realm, req.app.locals.config, { now: securityNow(req), checkLock: true });
+  if (ineligible || (!recovery && (step === null || step <= account.lastMfaStep))) {
     await AdminChallenge.updateOne({ _id: challenge._id }, { $inc: { attempts: 1 } });
     await failedLogin(req, account, null, 'STAFF_MFA_FAILED');
     throw httpError(401, 'The MFA code is invalid, already used, or the account is unavailable.');

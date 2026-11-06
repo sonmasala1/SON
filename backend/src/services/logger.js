@@ -15,10 +15,14 @@ const operations = new Map([
 export function safeRoute(req) {
   const path = String(req.originalUrl || '').split('?')[0];
   const realm = /^\/api\/v1\/(owner|admin)(?:\/|$)/.exec(path)?.[1];
+  // Requests outside the versioned API (root probes, favicon, scanners) are not API routes.
+  if (['/', '/favicon.ico', '/robots.txt', '/healthz'].includes(path)) return path;
+  if (!/^\/api\/v1(?:\/|$)/.test(path)) return '/:unmatched';
+  const relative = path.replace(/^\/api\/v1/, '');
+  if (relative === '' || relative === '/') return '/api/v1';
   // These are server-owned route templates, never raw parameter values.
   const template = req.route?.path;
   if (typeof template === 'string' && template.startsWith('/')) return `/api/v1${realm ? `/${realm}` : ''}${template}`;
-  const relative = path.replace(/^\/api\/v1/, '');
   if (operations.has(relative) || ['/health', '/ready', '/products', '/cart', '/cart/items', '/checkout/preview', '/checkout/place', '/categories', '/reviews', '/wishlist'].includes(relative)) return `/api/v1${relative}`;
   if (/^\/checkout\/attempts\/[^/]+$/.test(relative)) return '/api/v1/checkout/attempts/:attemptId';
   if (realm && /^\/(owner|admin)\/auth\/(?:login|logout|me|mfa\/verify|passkeys\/(?:options|verify))$/.test(relative)) return `/api/v1${relative}`;
@@ -69,7 +73,7 @@ export function logEvent(level, event, fields = {}, explicitReq) {
   if (['EADDRINUSE', 'EACCES', 'ECONNREFUSED', 'ETIMEDOUT', 'EAUTH', 'ENOTFOUND', 'DATABASE_NAME_REQUIRED', 'DATABASE_CONTENT_MISMATCH', 'MONGODB_URI_INVALID', 'INSUFFICIENT_STOCK', 'PRODUCT_UNAVAILABLE', 'VARIANT_UNAVAILABLE', 'INVENTORY_CHANGED', 'CART_EMPTY', 'RESTOCK_TARGET_MISSING', 'CART_CHANGED', 'TOTAL_CHANGED'].includes(fields.code)) record.code = fields.code;
   if (['database_configuration', 'database_tls', 'database_authentication', 'database_dns', 'database_index_conflict', 'database_network', 'database_selection_timeout', 'database_content_mismatch', 'brevo_smtp_key_detected'].includes(fields.diagnostic)) record.diagnostic = fields.diagnostic;
   if (event === 'api.request' && fields.status === 404 && typeof fields.unmatchedPath === 'string' && fields.unmatchedPath.length <= 160 && /^[A-Za-z0-9_:/-]*$/.test(fields.unmatchedPath)) record.unmatchedPath = fields.unmatchedPath;
-  if (['login_validation_succeeded', 'login_validation_failed', 'mfa_validation_failed', 'cookie_missing', 'cookie_malformed', 'session_not_found', 'session_realm_mismatch', 'session_revoked', 'session_expired', 'account_not_found', 'account_inactive', 'mfa_disabled', 'session_version_mismatch', 'account_role_mismatch', 'account_not_production_verified', 'session_inactive', 'session_authenticated', 'session_persisted', 'cookie_issued'].includes(fields.stage)) record.stage = fields.stage;
+  if (['login_validation_succeeded', 'login_validation_failed', 'mfa_validation_failed', 'cookie_missing', 'cookie_malformed', 'session_not_found', 'session_realm_mismatch', 'session_revoked', 'session_expired', 'account_not_found', 'account_inactive', 'mfa_disabled', 'session_version_mismatch', 'account_role_mismatch', 'account_not_production_verified', 'account_locked', 'session_inactive', 'session_authenticated', 'session_persisted', 'cookie_issued'].includes(fields.stage)) record.stage = fields.stage;
   if (['admin', 'owner'].includes(fields.realm)) record.realm = fields.realm;
   if (safeProviderCodes.has(fields.providerCode)) record.providerCode = fields.providerCode;
 

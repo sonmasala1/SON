@@ -280,7 +280,10 @@ test('owner/staff MFA, session separation, invitations, permissions, and recover
       assert.equal(authenticated.status, 200);
       assert.ok(authenticated.headers.getSetCookie().some(cookie => cookie.startsWith('son_owner_session=') && cookie.includes('HttpOnly') && cookie.includes('Secure') && cookie.includes('SameSite=Strict')));
       await AdminAccount.updateOne({ _id: invited.id }, { status: 'ACTIVE', verificationSource: 'DEVELOPMENT_PREVIEW', emailVerifiedAt: null, $unset: { lockedUntil: '' } });
-      assert.equal((await post('/admin/auth/login', { adminId: invited.adminId, password })).status, 401);
+      const previewLogin = await post('/admin/auth/login', { adminId: invited.adminId, password });
+      assert.equal(previewLogin.status, 403);
+      assert.equal((await previewLogin.json()).code, 'STAFF_EMAIL_UNVERIFIED');
+      assert.equal(previewLogin.headers.getSetCookie().some(cookie => cookie.startsWith('son_admin_session=')), false);
       let limited;
       for (let attempt = 0; attempt < 9; attempt++) limited = await post('/owner/auth/login', { adminId: 'UNKNOWN-OWNER', password });
       assert.equal(limited.status, 429);

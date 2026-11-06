@@ -5,7 +5,8 @@ for (const [button, heading, status] of [
   ['Simulate Failed Payment', 'Demo payment failed.', 'FAILED'],
   ['Simulate Cancelled Payment', 'Demo payment cancelled.', 'CANCELLED'],
 ]) {
-  test(`complete checkout: ${status}`, async ({ page }) => {
+  // Demo payment simulation was removed in d42d52b (backend/docs/checkout-fix.md).
+  test.skip(`complete checkout: ${status}`, async ({ page }) => {
     const errors = []; page.on('pageerror', error => errors.push(error.message)); page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     await page.goto('/shop'); await expect(page.locator('.product-card')).toHaveCount(3);
     await page.locator('.product-card').filter({ has: page.getByRole('heading', { name: 'Haldi Powder', exact: true }) }).getByRole('button', { name: 'Buy Now' }).click();
@@ -31,7 +32,7 @@ for (const [button, heading, status] of [
 }
 
 test('mobile registration merges guest bag and sign-in restores customer cart', async ({ page, advanceAuthClock }) => {
-  await page.goto('/shop'); await page.locator('.product-card').first().getByRole('button', { name: 'Add to Cart' }).click(); await page.getByRole('button', { name: 'Close shopping bag' }).click();
+  await page.goto('/shop'); await page.locator('.product-card').first().getByRole('button', { name: 'Add to Cart' }).click(); await expect(page.getByRole('button', { name: 'Shopping cart, 1 items' }).first()).toBeVisible();
   await page.goto('/login'); await customerSignIn(page);
   await expect(page.getByRole('heading', { name: 'Hello, Browser Shopper.' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Shopping cart, 1 items' })).toBeVisible();

@@ -44,8 +44,10 @@ async function staffLogin(page, realm, credentials) {
   await readable(page);
   await page.getByLabel(realm === 'owner' ? 'Owner ID' : 'Admin ID', { exact: true }).fill(credentials.adminId);
   await page.getByLabel('Password', { exact: true }).fill(credentials.password);
+  // The form defaults to the deployment security code; these accounts use their authenticator.
+  await page.getByRole('button', { name: 'Use my authenticator app instead' }).click();
   await page.getByLabel('MFA verification code').fill(mfaCode(credentials.secret));
-  await page.locator('.staff-login-form form .button').click();
+  await page.locator('.staff-login-form form button[type=submit], .staff-login-form form .button').first().click();
   await expect(page.locator('.staff-metric-grid article').first()).toBeVisible();
 }
 

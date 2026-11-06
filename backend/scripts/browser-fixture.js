@@ -5,6 +5,8 @@ import { getEnv } from '../src/config/env.js';
 import { initializeModels } from '../src/config/models.js';
 import { createApp } from '../src/app.js';
 import { seedDemo } from './seed-demo.js';
+import Product from '../src/models/Product.js';
+import ProductVariant from '../src/models/ProductVariant.js';
 import { AdminAccount } from '../src/models/administration.js';
 import { operationalPermissions } from '../src/config/permissions.js';
 import { newAdminId, randomToken, digest, hashPassword, newMfaSecret, encryptSecret, totp } from '../src/services/staffCrypto.js';
@@ -19,6 +21,13 @@ async function cleanup() { if (server) await new Promise(resolve => server.close
 try {
   await mongoose.connect(uri, { dbName: databaseName, serverSelectionTimeoutMS: 5000 });
   await initializeModels(); await seedDemo();
+  // The storefront never lists demo records (backend/docs/checkout-fix.md). Promote this
+  // throwaway database's seeded catalogue to ordinary published products so browser tests
+  // exercise the same catalogue, cart and checkout rules as production.
+  if (mongoose.connection.name === databaseName) {
+    await Product.collection.updateMany({ isDemo: true }, { $set: { isDemo: false } });
+    await ProductVariant.collection.updateMany({ isDemo: true }, { $set: { isDemo: false } });
+  }
   let authClockOffset = 0;
   const emailMessages = [];
   const config = { nodeEnv: 'test', webAuthnRpId: 'localhost', webAuthnOrigin: process.env.E2E_BASE_URL || 'http://localhost:3000', crossSiteCookies: false, emailDeliveryAdapter: async message => emailMessages.push(message), demoEnabled: true, mfaEncryptionKey: randomBytes(32).toString('base64'), authDevPreview: true, brevoApiKey: null, twilioSid: null, twilioToken: null, clock: () => Date.now() + authClockOffset, ...createGoogleTestProvider() };

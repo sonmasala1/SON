@@ -48,6 +48,8 @@ test('cart drawer, count, quantity, refresh persistence, and removal work', asyn
   await page.goto('/shop'); await expect(page.locator('.product-card')).toHaveCount(3);
   const product = page.locator('.product-card').filter({ has: page.getByRole('heading', { name: 'Haldi Powder', exact: true }) });
   await product.getByRole('button', { name: 'Add to Cart' }).click();
+  // Adding keeps the listing visible; the header bag opens the drawer.
+  await page.getByRole('button', { name: 'Shopping cart, 1 items' }).first().click();
   const drawer = page.getByRole('dialog', { name: 'Your shopping bag' }); await expect(drawer).toBeVisible();
   await expect(drawer.getByText('₹148.00', { exact: true })).toBeVisible();
   await drawer.getByRole('button', { name: 'Increase Haldi Powder' }).click();

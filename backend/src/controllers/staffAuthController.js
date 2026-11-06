@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { parse } from '../validators/commerce.js';
-import { loginStaffWithSecurityCode, verifyStaffMfa, staffView, sendStaffSession } from '../services/staffAuthService.js';
+import { loginStaffWithSecurityCode, beginStaffLogin, verifyStaffMfa, staffView, sendStaffSession } from '../services/staffAuthService.js';
 import { AdminSession } from '../models/administration.js';
 import { audit, securityNow } from '../services/staffAudit.js';
 import { staffCookie } from '../middleware/staffAccess.js';
@@ -10,15 +10,21 @@ export const staffLogin = realm => async (req, res, next) => {
     const input = parse(z.object({
       adminId: z.string().trim().toUpperCase().max(40),
       password: z.string().min(1).max(200),
-      securityCode: z.string().trim().regex(/^\d{6}$/),
+      securityCode: z.string().trim().regex(/^\d{6}$/).optional(),
     }).strict(), req.body);
+    req.staffRealm = realm;
+    // Two second factors are supported: the deployment's private security code, or the
+    // account's own authenticator (TOTP or recovery code) completed through /auth/mfa/verify.
+    if (input.securityCode === undefined) {
+      return res.set('Cache-Control', 'no-store').json({ success: true, ...await beginStaffLogin(req, realm, input.adminId, input.password) });
+    }
     const result = await loginStaffWithSecurityCode(req, realm, input.adminId, input.password, input.securityCode);
     sendStaffSession(req, res, result, realm);
   }
   catch (error) { next(error); }
 };
 export const staffMfa = realm => async (req, res, next) => {
-  try { const input = parse(z.object({ challengeToken: z.string().max(100), code: z.string().regex(/^(?:\d{6}|[A-F0-9]{4}(?:-[A-F0-9]{4}){7})$/) }).strict(), req.body); sendStaffSession(req, res, await verifyStaffMfa(req, realm, input.challengeToken, input.code), realm); }
+  try { req.staffRealm = realm; const input = parse(z.object({ challengeToken: z.string().max(100), code: z.string().regex(/^(?:\d{6}|[A-F0-9]{4}(?:-[A-F0-9]{4}){7})$/) }).strict(), req.body); sendStaffSession(req, res, await verifyStaffMfa(req, realm, input.challengeToken, input.code), realm); }
   catch (error) { next(error); }
 };
 export function staffMe(req, res) { res.json({ success: true, account: staffView(req.staff), csrfToken: req.csrfToken, session: { expiresAt: req.staffSession.expiresAt, mfaMethod: req.staffSession.mfaMethod } }); }

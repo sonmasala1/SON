@@ -568,6 +568,8 @@ main { width: 100%; min-width: 0; }
 .staff-login-form label, .staff-edit-panel > label, .staff-invite-result label { display: flex; flex-direction: column; font-size: var(--text-support); font-weight: 600; gap: 8px; }
 .staff-login-form input, .staff-edit-panel input:not([type='checkbox']), .staff-invite-result input { min-width: 0; width: 100%; padding: 12px 14px; background: #fffdf6; border: 1px solid #cdd3be; border-radius: 3px; color: var(--green); font-size: var(--text-body); }
 .staff-login-form .form-error { margin: 0; }
+.staff-login-form .staff-login-method { justify-self: center; background: none; border: 0; border-bottom: 1px solid currentColor; border-radius: 0; color: inherit; cursor: pointer; min-height: 44px; padding: 0 2px; font-family: inherit; }
+.staff-login-form .staff-login-method:disabled { opacity: .6; cursor: default; }
 .passkey-login { margin-top: 18px; }
 .staff-login-help { font-size: var(--text-support) !important; margin-top: 25px; line-height: 1.8; }
 .staff-workspace { display: grid; grid-template-columns: 255px minmax(0, 1fr); background: #f7f7ef; min-height: 75vh; }

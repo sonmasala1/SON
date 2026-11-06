@@ -85,3 +85,29 @@ test('database connection refuses an implicit test database without confirmation
   assert.equal(getDatabaseStatus().connected, false);
   assert.match(getDatabaseStatus().error, /defaults to "test"/);
 });
+
+test('platform root probes answer 200/204 and are not logged as unmatched API routes', async t => {
+  const { safeRoute } = await import('../src/services/logger.js');
+  const server = createApp().listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  for (const path of ['/', '/healthz', '/api/v1', '/api/v1/']) {
+    for (const method of ['GET', 'HEAD']) {
+      const response = await fetch(origin + path, { method });
+      assert.equal(response.status, 200, `${method} ${path}`);
+      if (method === 'GET') assert.equal((await response.json()).success, true);
+    }
+  }
+  assert.equal((await fetch(`${origin}/favicon.ico`, { method: 'HEAD' })).status, 204);
+  assert.equal((await fetch(`${origin}/robots.txt`)).status, 200);
+  for (const path of ['/wp-login.php', '/api/v1/not-a-real-endpoint']) {
+    const missing = await fetch(origin + path);
+    assert.equal(missing.status, 404); assert.equal((await missing.json()).success, false);
+  }
+  assert.equal(safeRoute({ originalUrl: '/' }), '/');
+  assert.equal(safeRoute({ originalUrl: '/wp-login.php?x=1' }), '/:unmatched');
+  assert.equal(safeRoute({ originalUrl: '/api/v1' }), '/api/v1');
+  assert.equal(safeRoute({ originalUrl: '/api/v1/admin/auth/me', route: { path: '/auth/me' } }), '/api/v1/admin/auth/me');
+  assert.equal(safeRoute({ originalUrl: '/api/v1/nope' }), '/api/v1/:unmatched');
+});

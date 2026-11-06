@@ -21,6 +21,7 @@
     "owner:bootstrap": "node scripts/owner-bootstrap.js",
     "owner:recover": "node scripts/owner-bootstrap.js --recover",
     "staff:sync-env": "node scripts/syncStaffEnvironment.js",
+    "staff:verify-email": "node scripts/verify-staff-email.js",
     "config:check": "node scripts/check-config.js"
   },
   "dependencies": {

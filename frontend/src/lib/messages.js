@@ -1,6 +1,16 @@
 // English source phrases are stable message keys. Keep translations here rather than in page components.
 // Names, addresses, contact details, SKUs and user-written reviews remain as authored.
 const entries = `
+Contact us for help with your order, payment or shipment.	अपने ऑर्डर, भुगतान या शिपमेंट में मदद के लिए हमसे संपर्क करें।
+Ordering and payment	ऑर्डर और भुगतान
+Place your order using Pay Later. Your payment remains pending until our team confirms receipt. Our team will contact you to arrange payment and shipment. Online payment is currently unavailable.	भुगतान बाद में विकल्प से ऑर्डर करें। हमारी टीम द्वारा भुगतान मिलने की पुष्टि होने तक भुगतान लंबित रहता है। भुगतान और शिपमेंट की व्यवस्था के लिए हमारी टीम आपसे संपर्क करेगी। ऑनलाइन भुगतान अभी उपलब्ध नहीं है।
+Delivery	डिलीवरी
+Current product prices, stock and delivery charges are checked by the store and shown in your bag and order review.	उत्पादों की मौजूदा कीमतें, स्टॉक और डिलीवरी शुल्क स्टोर द्वारा जाँचे जाते हैं और आपके बैग तथा ऑर्डर समीक्षा में दिखाए जाते हैं।
+Your shopping bag is saved on the server. Sign in to place an order and view your order history.	आपका शॉपिंग बैग सर्वर पर सहेजा जाता है। ऑर्डर करने और अपना ऑर्डर इतिहास देखने के लिए लॉग इन करें।
+Favourites are saved to your account. Delivery details are saved securely with your order and used to arrange payment and shipment.	पसंदीदा उत्पाद आपके खाते में सहेजे जाते हैं। डिलीवरी विवरण आपके ऑर्डर के साथ सुरक्षित रूप से सहेजे जाते हैं और भुगतान तथा शिपमेंट की व्यवस्था में उपयोग होते हैं।
+Cancellations	रद्दीकरण
+You can cancel a pending order before shipment from its order details. For other changes, contact the store.	शिपमेंट से पहले आप लंबित ऑर्डर को उसके ऑर्डर विवरण से रद्द कर सकते हैं। अन्य बदलावों के लिए स्टोर से संपर्क करें।
+Signed-in customers may submit reviews. Reviews require administrator approval before appearing publicly.	लॉग इन किए हुए ग्राहक समीक्षा भेज सकते हैं। सार्वजनिक रूप से दिखने से पहले समीक्षाओं को प्रशासक की मंज़ूरी चाहिए।
 Write a Review	समीक्षा लिखें
 Customer Reviews	ग्राहक समीक्षाएँ
 Updating your bag…	आपका बैग अपडेट हो रहा है…

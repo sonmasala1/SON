@@ -1,17 +1,18 @@
 ﻿const { test, expect, mfaCode } = require('./fixtures');
 
-test('authenticated reviews require moderation and carousel rotates with accessible controls', async ({ page, backendURL, staffCredentials }) => {
+test('authenticated reviews require moderation and carousel rotates with accessible controls', async ({ page, backendURL, staffCredentials, readEmailCode }) => {
   test.setTimeout(60000);
   let csrf = '';
   const api = async (endpoint, body, method = 'POST') => {
     const response = await page.request.fetch(backendURL + endpoint, { method, headers: { Origin: 'http://localhost:3000', 'X-CSRF-Token': csrf }, ...(body ? { data: body } : {}) });
-    expect(response.ok()).toBeTruthy(); const data = await response.json(); if (data.csrfToken) csrf = data.csrfToken; return data;
+    expect(response.ok(), `${method} ${endpoint} returned ${response.status()}`).toBeTruthy(); const data = await response.json(); if (data.csrfToken) csrf = data.csrfToken; return data;
   };
   await page.goto('/'); await expect(page.getByText('Be the first to review SON MASALA.')).toBeVisible();
   const product = (await api('/products', null, 'GET')).products.find(product => product.slug === 'haldi-powder');
   for (let index = 0; index < 2; index++) {
-    const sent = await api('/auth/send-otp', { fullName: `Isolated Reviewer ${index}`, phone: `+91987654321${index}`, channel: 'sms' });
-    await api('/auth/verify-otp', { challengeToken: sent.challengeToken, code: sent.developmentCode });
+    // Reviews require a genuinely verified contact; development-preview SMS codes never verify.
+    const sent = await api('/auth/email/send-otp', { fullName: `Isolated Reviewer ${index}`, email: `reviewer${index}@example.com` });
+    await api('/auth/email/verify-otp', { challengeToken: sent.challengeToken, code: await readEmailCode(), fullName: `Isolated Reviewer ${index}`, phone: `+91987654321${index}` });
     await api('/reviews', { productId: product._id, displayName: `Isolated Reviewer ${index}`, rating: 4 + index, comment: `Isolated browser-test review ${index}. This is not a live customer testimonial.` });
     await api('/auth/logout', {});
   }
